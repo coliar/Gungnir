@@ -7,7 +7,7 @@ Gungnir is an embedded operating system implemented based on STM32 + HAL + Rust.
 ### Main Directories and Files
 
 - **board/**: Contains source code and header files related to the board support package.
-- **clib/**: Contains implementations of the C standard library.
+- **clib/**: Contains implementations of C functions.
 - **hal/**: Contains STM32H7xx HAL drivers.
 - **kernel/**: Contains the kernel code of the project.
 - **rustlib/**: Contains Rust libraries.
