@@ -1,0 +1,56 @@
+[package]
+name = "kernel"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+
+[features]
+default = ["test_features", "alloc", "lfn", "unicode"]
+alloc = []
+lfn = []
+unicode = []
+std = []
+dirty-file-panic = []
+chrono = []
+test_features = ["heap_test"]
+heap_test = []
+future_test = []
+sdmmc_test = []
+
+
+[dependencies]
+aligned = "0.4.2"
+embedded-io-async = "0.6.1"
+bitflags = "1.0"
+spin = "0.9.8"
+
+[dependencies.lazy_static]
+version = "1.5.0"
+features = ["spin_no_std"]
+
+[dependencies.crossbeam-queue]
+version = "0.3.11"
+default-features = false
+features = ["alloc"]
+
+[dependencies.conquer-once]
+version = "0.2.0"
+default-features = false
+
+[dependencies.futures-util]
+version = "0.3.31"
+default-features = false
+features = ["alloc"]
+
+[dependencies.futures-core]
+version = "0.3.31"
+default-features = false
+features = ["alloc"]
+
+
+[dependencies.futures-channel]
+version = "0.3.31"
+default-features = false
+features = ["alloc"]
