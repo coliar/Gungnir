@@ -59,7 +59,6 @@ fn panic(info: &PanicInfo) -> ! {
 #[no_mangle] // don't mangle the name of this function
 pub extern "C" fn kernel_main(sdram_start: *mut u8, sdram_size: usize) -> ! {
     println!("kernel is powered by Rust");
-    log::init_log_level(log::LogLevel::Info);
 
     unsafe {
         ALLOCATOR.lock().init(sdram_start, sdram_size);

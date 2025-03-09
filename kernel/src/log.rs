@@ -8,21 +8,13 @@ pub(crate) enum LogLevel {
     Error,
 }
 
-pub(crate) static mut LOG_LEVEL: LogLevel = LogLevel::Info;
-
-pub(crate) fn init_log_level(level: LogLevel) {
-    unsafe {
-        LOG_LEVEL = level;
-    }
-}
+pub(crate) static LOG_LEVEL: LogLevel = LogLevel::Info;
 
 #[macro_export]
 macro_rules! log {
     ($level:expr, $($arg:tt)*) => {
-        unsafe {
-            if $level >= $crate::log::LOG_LEVEL {
-                println!($($arg)*);
-            }
+        if $level >= $crate::log::LOG_LEVEL {
+            println!($($arg)*);
         }
     };
 }
