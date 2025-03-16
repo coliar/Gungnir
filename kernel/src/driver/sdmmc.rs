@@ -1,10 +1,13 @@
-#![allow(unused_imports)]
+#![allow(unused_imports, dead_code)]
 
-use core::future::Future;
+use core::{cell::Cell, future::{poll_fn, Future}, ops::DerefMut, pin::pin, u8};
 
+use alloc::{collections::btree_map::BTreeMap, sync::Arc};
 use embedded_io_async::{Read, Seek, Write};
 use futures_util::task::AtomicWaker;
 use aligned::{Aligned, A4};
+use lazy_static::lazy_static;
+use spin::Mutex;
 
 use crate::{
     c_api::{get_RxCplt, get_TxCplt, get_sdcard_capacity, sdmmc_read_blocks_it, sdmmc_write_blocks_it, set_RxCplt, set_TxCplt},
@@ -277,4 +280,170 @@ pub(crate) async fn test_sdmmc_read_write() {
     }
 
     info!("BufStream read/write test passed");
+}
+
+
+const READ_REQUEST: u32 = 1;
+const WRITE_REQUEST: u32 = 2;
+
+static IO_REQS: Mutex<BTreeMap<IoRequest, (Arc<AtomicWaker>, Arc<Mutex<IoStatus>>)>> = Mutex::new(BTreeMap::new());
+
+#[derive(PartialEq, Eq, Clone, Copy)]
+enum IoStatus {
+    Start,
+    Waiting,
+    Ready,
+}
+
+impl IoStatus {
+    fn set(&mut self, status: IoStatus) {
+        *self = status;
+    }
+
+    fn eq(&self, status: IoStatus) -> bool {
+        self == &status
+    }
+}
+
+pub(crate) struct SdmmcIo {
+    waker: Arc<AtomicWaker>,
+    io_status: Arc<Mutex<IoStatus>>,
+}
+
+impl SdmmcIo {
+    fn new() -> Self {
+        Self {
+            waker: Arc::new(AtomicWaker::new()),
+            io_status: Arc::new(Mutex::new(IoStatus::Start)),
+        }
+    }
+
+    fn read_blocks_it(&mut self, buf: *mut u8, addr: u32, num: u32) -> i32 {
+        self.io_status.lock().set(IoStatus::Start);
+        unsafe { sdmmc_read_blocks_it(buf, addr, num) }
+    }
+
+    fn write_blocks_it(&mut self, data: *const u8, addr: u32, num: u32) -> i32 {
+        self.io_status.lock().set(IoStatus::Start);
+        unsafe { sdmmc_write_blocks_it(data, addr, num) }
+    }
+
+    fn poll(&mut self) -> impl Future<Output = ()> + Send + Sync + '_ {
+        poll_fn(|cx| {
+            let mut status_guard = self.io_status.lock();
+            if status_guard.eq(IoStatus::Start) {
+                self.waker.register(&cx.waker());
+                status_guard.set(IoStatus::Waiting);
+                core::task::Poll::Pending
+            } else {
+                core::task::Poll::Ready(())
+            }
+        })
+    }
+}
+
+// impl Future for SdmmcIo {
+//     type Output = ();
+
+//     fn poll(self: core::pin::Pin<&mut Self>, cx: &mut core::task::Context<'_>) -> core::task::Poll<Self::Output> {
+//         if self.io_status == IoStatus::Start {
+//             self.waker.register(&cx.waker());
+//             self.get_mut().io_status = IoStatus::Waiting;
+//             core::task::Poll::Pending
+//         } else {
+//             core::task::Poll::Ready(())
+//         }
+//     }
+// }
+
+impl<const SIZE: usize> BlockDevice<SIZE> for SdmmcIo {
+    type Align = A4;
+    type Error = ();
+
+    async fn read(
+            &mut self,
+            block_address: u32,
+            data: &mut [Aligned<Self::Align, [u8; SIZE]>],
+    ) -> Result<(), Self::Error> {
+        if data.len() == 0 {
+            return Ok(());
+        }
+        let num_block = SIZE / 512;
+        for (i, buf) in data.iter_mut().enumerate() {
+            let res = self.read_blocks_it(buf[..].as_mut_ptr(), block_address + (i * num_block) as u32, num_block as u32);
+            if res != 0 {
+                return Err(());
+            }
+            let mut reqs_guard = IO_REQS.lock();
+            reqs_guard.insert(
+                IoRequest::new(READ_REQUEST, buf[..].as_ptr() as usize, SIZE as u32),
+                (self.waker.clone(), self.io_status.clone())
+            );
+            drop(reqs_guard);
+            self.poll().await;
+        }
+
+        Ok(())
+    }
+
+    async fn write(
+            &mut self,
+            block_address: u32,
+            data: &[Aligned<Self::Align, [u8; SIZE]>],
+    ) -> Result<(), Self::Error> {
+        if data.len() == 0 {
+            return Ok(());
+        }
+        let num_block = SIZE / 512;
+        for (i, buf) in data.iter().enumerate() {
+            let res = self.write_blocks_it(buf[..].as_ptr(), block_address + (i * num_block) as u32, num_block as u32);
+            if res != 0 {
+                return Err(())
+            }
+            let mut reqs_guard = IO_REQS.lock();
+            reqs_guard.insert(
+                IoRequest::new(WRITE_REQUEST, buf[..].as_ptr() as usize, SIZE as u32),
+                (self.waker.clone(), self.io_status.clone())
+            );
+            drop(reqs_guard);
+            self.poll().await;
+        }
+
+        Ok(())
+    }
+
+    async fn size(&mut self) -> Result<u64, Self::Error> {
+        let cap = unsafe { get_sdcard_capacity() };
+        Ok(cap)
+    }
+}
+
+#[derive(PartialEq, Eq, PartialOrd, Ord)]
+struct IoRequest {
+    req: u32,
+    buf: usize,
+    size: u32,
+}
+
+impl IoRequest {
+    fn new(req: u32, buf: usize, size: u32) -> Self {
+        Self { req, buf, size }
+    }
+}
+
+#[no_mangle]
+pub extern "C" fn io_req_cplt_callback(req: u32, addr: usize, size: u32) {
+    assert!(req == READ_REQUEST || req == WRITE_REQUEST);
+    let io_req = IoRequest::new(req, addr, size);
+    let mut reqs_guard = IO_REQS.lock();
+    if let Some((waker, io_status)) = reqs_guard.get(&io_req) {
+        let mut status_guard = io_status.lock();
+        if status_guard.eq(IoStatus::Waiting) {
+            waker.wake();
+        }
+        status_guard.set(IoStatus::Ready);
+    } else {
+        panic!("invalid io request in sdmmc");
+    }
+    reqs_guard.remove(&io_req);
 }

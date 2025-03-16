@@ -43,25 +43,25 @@ pub(crate) async fn fs_init() {
         *FS.lock() = Some(fs);
     }
 
-    // let fs_guard = FS.lock();
-    // let root = fs_guard.as_ref().unwrap().root_dir();
-    // let mut iter = root.iter();
-    // loop {
-    //     if let Some(Ok(entry)) = iter.next().await {
-    //         if entry.is_dir() {
-    //             info!("Dir  name:{}", entry.file_name());
-    //         } else if entry.is_file() {
-    //             let mut rbuf = [0u8; 512];
+    let fs_guard = FS.lock();
+    let root = fs_guard.as_ref().unwrap().root_dir();
+    let mut iter = root.iter();
+    loop {
+        if let Some(Ok(entry)) = iter.next().await {
+            if entry.is_dir() {
+                info!("Dir  name:{}", entry.file_name());
+            } else if entry.is_file() {
+                let mut rbuf = [0u8; 512];
 
-    //             let size = entry.to_file().read(&mut rbuf).await.expect("read file failed");
-    //             let content = core::str::from_utf8(&rbuf[..size]).expect("utf8 error");
-    //             info!("File  name:{}  content: {}", entry.file_name(), content);
-    //         } else {
-    //             info!("Unknown type");
-    //         }
-    //     } else {
-    //         info!("end");
-    //         break;
-    //     }
-    // }
+                let size = entry.to_file().read(&mut rbuf).await.expect("read file failed");
+                let content = core::str::from_utf8(&rbuf[..size]).expect("utf8 error");
+                info!("File  name:{}  content: {}", entry.file_name(), content);
+            } else {
+                info!("Unknown type");
+            }
+        } else {
+            info!("end");
+            break;
+        }
+    }
 }
