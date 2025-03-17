@@ -8,7 +8,7 @@ use lazy_static::lazy_static;
 use spin::Mutex;
 use time::DefaultTimeProvider;
 
-use crate::{driver::{block_device_driver::BufStream, sdmmc::Sdmmc}, info, log, println};
+use crate::{driver::{block_device_driver::BufStream, sdmmc::SdmmcIo}, info, log, println};
 
 pub(crate) mod io;
 pub(crate) mod error;
@@ -23,18 +23,18 @@ pub(crate) mod time;
 
 lazy_static! {
     pub(crate) static ref 
-    FS: Mutex<Option<FileSystem<BufStream<Sdmmc, 512>, DefaultTimeProvider, LossyOemCpConverter>>> = Mutex::new(None);
+    FS: Mutex<Option<FileSystem<BufStream<SdmmcIo, 512>, DefaultTimeProvider, LossyOemCpConverter>>> = Mutex::new(None);
 }
 
 pub(crate) async fn fs_init() {
-    let sdmmc = Sdmmc::new();
+    let sdmmc = SdmmcIo::new();
     let buf_stream = BufStream::<_, 512>::new(sdmmc);
 
     if let Ok(fs) = FileSystem::new(buf_stream, FsOptions::new()).await {
         *FS.lock() = Some(fs);
     } else {
         info!("formatting fatfs");
-        let sdmmc = Sdmmc::new();
+        let sdmmc = SdmmcIo::new();
         let mut buf_stream = BufStream::<_, 512>::new(sdmmc);
 
         format_volume(&mut buf_stream, FormatVolumeOptions::default()).await.expect("format fatfs failed");

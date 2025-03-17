@@ -71,6 +71,9 @@ pub extern "C" fn kernel_main(sdram_start: *mut u8, sdram_size: usize) -> ! {
 
     let executor = Arc::new(Executor::new());
     
+    #[cfg(feature = "sdmmc_test")]
+    executor.spawn(driver::sdmmc::test_sdmmc_io());
+
     executor.spawn(fatfs::fs_init());
 
     executor.spawn(gsh::gshell(executor.clone()));

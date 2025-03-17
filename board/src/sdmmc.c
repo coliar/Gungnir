@@ -137,45 +137,18 @@ void HAL_SD_ErrorCallback(SD_HandleTypeDef *hsd) {
 
 #if !SDMMC_TEST
 
-#define READ_REQUEST 1
-#define WRITE_REQUEST 2
-
-__IO uint8_t RxCplt = 0, TxCplt = 0;
-
-uint8_t get_RxCplt() {
-  return RxCplt;
-}
-
-void set_RxCplt(uint8_t val) {
-  RxCplt = val;
-}
-
-uint8_t get_TxCplt() {
-  return TxCplt;
-}
-
-void set_TxCplt(uint8_t val) {
-  TxCplt = val;
-}
-
 void HAL_SD_RxCpltCallback(SD_HandleTypeDef *hsd) {
-    extern void io_req_cplt_callback(uint32_t req, uint8_t *addr, uint32_t size);
-    io_req_cplt_callback(READ_REQUEST, hsd->pRxBuffPtr, hsd->RxXferSize);
-//   extern void wake_sdmmc_reader();
-//   if (RxCplt == 2) {
-//     wake_sdmmc_reader();
-//   }
-//   RxCplt = 1;
+  extern uint32_t READ_REQUEST;
+  extern void io_req_cplt_callback(uint32_t req, uint8_t *addr, uint32_t size);
+
+  io_req_cplt_callback(READ_REQUEST, hsd->pRxBuffPtr, hsd->RxXferSize);
 }
 
 void HAL_SD_TxCpltCallback(SD_HandleTypeDef *hsd) {
-    extern void io_req_cplt_callback(uint32_t req, uint8_t *addr, uint32_t size);
-    io_req_cplt_callback(WRITE_REQUEST, hsd->pTxBuffPtr, hsd->TxXferSize);
-//   extern void wake_sdmmc_writer();
-//   if (TxCplt == 2) {
-//     wake_sdmmc_writer();
-//   }
-//   TxCplt = 1;
+  extern uint32_t WRITE_REQUEST;
+  extern void io_req_cplt_callback(uint32_t req, uint8_t *addr, uint32_t size);
+
+  io_req_cplt_callback(WRITE_REQUEST, hsd->pTxBuffPtr, hsd->TxXferSize);
 }
 
 int sdmmc_read_blocks_it(uint8_t *pData, uint32_t BlockAdd, uint32_t NumberOfBlocks) {
