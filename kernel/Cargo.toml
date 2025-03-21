@@ -7,14 +7,14 @@ edition = "2021"
 
 
 [features]
-default = ["test_features", "alloc", "lfn", "unicode"]
+default = ["test_features", "alloc", "lfn", "unicode", "dirty-file-panic"]
 alloc = []
 lfn = []
 unicode = []
 std = []
 dirty-file-panic = []
 chrono = []
-test_features = ["heap_test", "sdmmc_test"]
+test_features = ["heap_test"]
 heap_test = []
 future_test = []
 sdmmc_test = []

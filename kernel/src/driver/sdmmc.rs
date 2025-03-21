@@ -161,7 +161,7 @@ pub extern "C" fn io_req_cplt_callback(req: u32, addr: usize, size: u32) {
         }
         io_status.store(SdmmcIo::IO_READY, core::sync::atomic::Ordering::Release);
     } else {
-        panic!("invalid io request in sdmmc");
+        panic!("invalid io request in sdmmc request complete callback");
     }
 }
 

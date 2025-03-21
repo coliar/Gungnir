@@ -74,7 +74,11 @@ pub extern "C" fn kernel_main(sdram_start: *mut u8, sdram_size: usize) -> ! {
     #[cfg(feature = "sdmmc_test")]
     executor.spawn(driver::sdmmc::test_sdmmc_io());
 
-    executor.spawn(fatfs::fs_init());
+    let (tx1, rx1) = futures_channel::oneshot::channel();
+    let (tx2, rx2) = futures_channel::oneshot::channel();
+    executor.spawn(fatfs::fs_init(tx1));
+    executor.spawn(fatfs::fs_test1(rx1, tx2));
+    executor.spawn(fatfs::fs_test2(rx2));
 
     executor.spawn(gsh::gshell(executor.clone()));
 
