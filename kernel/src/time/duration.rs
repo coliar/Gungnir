@@ -166,7 +166,7 @@ impl DivAssign<u64> for Duration {
 
 impl core::fmt::Display for Duration {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        write!(f, "{} ticks", self.ticks)
+        write!(f, "Duration: {} ticks", self.ticks)
     }
 }
 

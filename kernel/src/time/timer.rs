@@ -1,24 +1,26 @@
-use core::{future::{poll_fn, Future}, pin::pin};
-
+use core::{future::Future, pin::pin};
+use alloc::{sync::Arc, vec::Vec};
 use futures_core::{FusedStream, Stream};
-use futures_util::future::{select, Either};
-
+use futures_util::{future::{select, Either}, task::AtomicWaker, StreamExt};
+use spin::Mutex;
 use super::{duration::Duration, instant::Instant};
+
+pub(crate) static WAITING_TIMERS: Mutex<Vec<(Instant, Arc<AtomicWaker>)>> = Mutex::new(Vec::new());
 
 pub(crate) struct Timer {
     expires_at: Instant,
-    yielded_once: bool,
+    waker: Arc<AtomicWaker>,
 }
 
 impl Timer {
     pub(crate) fn at(expires_at: Instant) -> Self {
-        Self { expires_at, yielded_once: false }
+        Self { expires_at, waker: Arc::new(AtomicWaker::new()) }
     }
 
     pub(crate) fn after(duration: Duration) -> Self {
         Self {
             expires_at: Instant::now() + duration,
-            yielded_once: false,
+            waker: Arc::new(AtomicWaker::new()),
         }
     }
 
@@ -47,24 +49,38 @@ impl Unpin for Timer {}
 
 impl Future for Timer {
     type Output = ();
-    fn poll(self: core::pin::Pin<&mut Self>, _cx: &mut core::task::Context<'_>) -> core::task::Poll<Self::Output> {
-        if self.yielded_once && self.expires_at <= Instant::now() {
+    fn poll(self: core::pin::Pin<&mut Self>, cx: &mut core::task::Context<'_>) -> core::task::Poll<Self::Output> {
+        if self.expires_at <= Instant::now() {
             core::task::Poll::Ready(())
         } else {
-            todo!()
+            self.waker.register(cx.waker());
+            WAITING_TIMERS.lock().push((self.expires_at, self.waker.clone()));
+            core::task::Poll::Pending
         }
     }
+}
+
+pub(crate) async  fn timer_test() {
+    use crate::println;
+    println!("Timer test");
+    let timer = Timer::after_secs(10);
+    timer.await;
+    println!("Timer test done");
 }
 
 pub(crate) struct Ticker {
     expires_at: Instant,
     duration: Duration,
+    waker: Arc<AtomicWaker>,
 }
 
 impl Ticker {
     pub(crate) fn every(duration: Duration) -> Self {
-        let expires_at = Instant::now() + duration;
-        Self { expires_at, duration }
+        Self {
+            expires_at: Instant::now() + duration,
+            duration, 
+            waker: Arc::new(AtomicWaker::new()),
+        }
     }
 
     pub(crate) fn reset(&mut self) {
@@ -78,31 +94,21 @@ impl Ticker {
     pub(crate) fn reset_after(&mut self, after: Duration) {
         self.expires_at = Instant::now() + after + self.duration;
     }
-
-    pub(crate) fn next(&mut self) -> impl Future<Output = ()> + Send + Sync + '_ {
-        poll_fn(|_cx| {
-            if self.expires_at <= Instant::now() {
-                let dur = self.duration;
-                self.expires_at += dur;
-                core::task::Poll::Ready(())
-            } else {
-                todo!()
-            }
-        })
-    }
 }
 
 impl Unpin for Ticker {}
 
 impl Stream for Ticker {
     type Item = ();
-    fn poll_next(mut self: core::pin::Pin<&mut Self>, _cx: &mut core::task::Context<'_>) -> core::task::Poll<Option<Self::Item>> {
+    fn poll_next(mut self: core::pin::Pin<&mut Self>, cx: &mut core::task::Context<'_>) -> core::task::Poll<Option<Self::Item>> {
         if self.expires_at <= Instant::now() {
             let dur = self.duration;
             self.expires_at += dur;
             core::task::Poll::Ready(Some(()))
         } else {
-            todo!()
+            self.waker.register(cx.waker());
+            WAITING_TIMERS.lock().push((self.expires_at, self.waker.clone()));
+            core::task::Poll::Pending
         }
     }
 }
@@ -111,6 +117,14 @@ impl FusedStream for Ticker {
     fn is_terminated(&self) -> bool {
         false
     }
+}
+
+pub(crate) async fn ticker_test() {
+    use crate::println;
+    let mut ticker = Ticker::every(Duration::from_secs(1));
+    while let Some(_iter) = ticker.next().await {
+        println!("DiDa");
+    };
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

@@ -1,6 +1,6 @@
 use core::ops::{Add, AddAssign, Sub, SubAssign};
 
-use super::{duration::Duration, TICK_HZ, GCD_1K, GCD_1M};
+use super::{duration::Duration, get_sys_ticks, GCD_1K, GCD_1M, TICK_HZ};
 
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -13,7 +13,7 @@ impl Instant {
     pub(crate) const MAX: Instant = Instant { ticks: u64::MAX };
 
     pub(crate) fn now() -> Self {
-        Self { ticks: unsafe { crate::c_api::get_ticks() } }
+        Self { ticks: get_sys_ticks() }
     }
 
     pub(crate) const fn from_ticks(ticks: u64) -> Self {

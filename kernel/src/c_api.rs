@@ -25,6 +25,4 @@ extern "C" {
     pub fn get_TxCplt() -> u8;
 
     pub fn set_TxCplt(val: u8);
-
-    pub fn get_ticks() -> u64;
 }

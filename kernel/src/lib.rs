@@ -72,7 +72,11 @@ pub extern "C" fn kernel_main(sdram_start: *mut u8, sdram_size: usize) -> ! {
 
     let executor = Arc::new(Executor::new());
     
-    executor.spawn(fatfs::fs_init());
+    //executor.spawn(fatfs::fs_init());
+
+    executor.spawn(time::timer::timer_test());
+
+    executor.spawn(time::timer::ticker_test());
 
     executor.spawn(gsh::gshell(executor.clone()));
 
