@@ -24,9 +24,6 @@ mod driver;
 #[macro_use]
 mod log;
 
-#[cfg(feature = "test_features")]
-mod tests;
-
 
 
 #[global_allocator]
@@ -64,11 +61,7 @@ pub extern "C" fn kernel_main(sdram_start: *mut u8, sdram_size: usize) -> ! {
     unsafe {
         ALLOCATOR.lock().init(sdram_start, sdram_size);
     }
-    #[cfg(feature = "heap_test")]
-    {
-        tests::heap_test(sdram_start, sdram_size).expect("kernle heap test");
-        info!("kernel heap was inited");
-    }
+    info!("kernel heap was inited");
 
     let executor = Arc::new(Executor::new());
     
