@@ -1,14 +1,14 @@
 #![allow(dead_code)]
 
 use core::fmt::Debug;
-pub(crate) use embedded_io_async::{Error as IoError, ErrorKind, ReadExactError};
+pub(super) use embedded_io_async::{Error as IoError, ErrorKind, ReadExactError};
 
 /// Error enum with all errors that can be returned by functions from this crate
 ///
 /// Generic parameter `T` is a type of external error returned by the user provided storage
 #[derive(Debug)]
 #[non_exhaustive]
-pub enum Error<T> {
+pub(crate) enum Error<T> {
     /// A user provided storage instance returned an error during an input/output operation.
     Io(T),
     /// A read operation cannot be completed because an end of a file has been reached prematurely.

@@ -29,7 +29,7 @@ use super::time::TimeProvider;
 
 const LFN_PADDING: u16 = 0xFFFF;
 
-pub(crate) enum DirRawStream<'a, IO: ReadWriteSeek, TP, OCC> {
+pub(super) enum DirRawStream<'a, IO: ReadWriteSeek, TP, OCC> {
     File(File<'a, IO, TP, OCC>),
     Root(DiskSlice<FsIoAdapter<'a, IO, TP, OCC>, FsIoAdapter<'a, IO, TP, OCC>>),
 }
@@ -119,7 +119,7 @@ pub(crate) struct Dir<'a, IO: ReadWriteSeek, TP, OCC> {
 }
 
 impl<'a, IO: ReadWriteSeek, TP, OCC> Dir<'a, IO, TP, OCC> {
-    pub(crate) fn new(stream: DirRawStream<'a, IO, TP, OCC>, fs: &'a FileSystem<IO, TP, OCC>) -> Self {
+    pub(super) fn new(stream: DirRawStream<'a, IO, TP, OCC>, fs: &'a FileSystem<IO, TP, OCC>) -> Self {
         Dir { stream, fs }
     }
 
@@ -163,7 +163,7 @@ impl<'a, IO: ReadWriteSeek, TP: TimeProvider, OCC: OemCpConverter> Dir<'a, IO, T
     }
 
     #[allow(clippy::type_complexity)]
-    pub(crate) async fn find_volume_entry(&self) -> Result<Option<DirEntry<'a, IO, TP, OCC>>, Error<IO::Error>> {
+    pub(super) async fn find_volume_entry(&self) -> Result<Option<DirEntry<'a, IO, TP, OCC>>, Error<IO::Error>> {
         let mut iter = DirIter::new(self.stream.clone(), self.fs, false);
         while let Some(r) = iter.next().await {
             let e = r?;
@@ -898,7 +898,7 @@ fn lfn_checksum(short_name: &[u8; SFN_SIZE]) -> u8 {
 
 #[cfg(all(feature = "lfn", feature = "alloc"))]
 #[derive(Clone)]
-pub(crate) struct LfnBuffer {
+pub(super) struct LfnBuffer {
     ucs2_units: Vec<u16>,
 }
 
@@ -912,7 +912,7 @@ const LONG_NAME_BUFFER_LEN: usize = MAX_LONG_DIR_ENTRIES * LFN_PART_LEN;
 
 #[cfg(all(feature = "lfn", not(feature = "alloc")))]
 #[derive(Clone)]
-pub(crate) struct LfnBuffer {
+pub(super) struct LfnBuffer {
     ucs2_units: [u16; LONG_NAME_BUFFER_LEN],
     len: usize,
 }
@@ -935,7 +935,7 @@ impl LfnBuffer {
         self.ucs2_units.clear();
     }
 
-    pub(crate) fn len(&self) -> usize {
+    pub(super) fn len(&self) -> usize {
         self.ucs2_units.len()
     }
 
@@ -943,7 +943,7 @@ impl LfnBuffer {
         self.ucs2_units.resize(len, 0_u16);
     }
 
-    pub(crate) fn as_ucs2_units(&self) -> &[u16] {
+    pub(super) fn as_ucs2_units(&self) -> &[u16] {
         &self.ucs2_units
     }
 }
@@ -974,7 +974,7 @@ impl LfnBuffer {
         self.len = 0;
     }
 
-    pub(crate) fn len(&self) -> usize {
+    pub(super) fn len(&self) -> usize {
         self.len
     }
 
@@ -982,18 +982,18 @@ impl LfnBuffer {
         self.len = len;
     }
 
-    pub(crate) fn as_ucs2_units(&self) -> &[u16] {
+    pub(super) fn as_ucs2_units(&self) -> &[u16] {
         &self.ucs2_units[..self.len]
     }
 }
 
 #[cfg(not(feature = "lfn"))]
 #[derive(Clone)]
-pub(crate) struct LfnBuffer {}
+pub(super) struct LfnBuffer {}
 
 #[cfg(not(feature = "lfn"))]
 impl LfnBuffer {
-    pub(crate) fn as_ucs2_units(&self) -> &[u16] {
+    pub(super) fn as_ucs2_units(&self) -> &[u16] {
         &[]
     }
 }

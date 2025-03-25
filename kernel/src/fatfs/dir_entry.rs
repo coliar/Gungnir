@@ -40,24 +40,24 @@ bitflags! {
 }
 
 // Size of single directory entry in bytes
-pub(crate) const DIR_ENTRY_SIZE: u32 = 32;
+pub(super) const DIR_ENTRY_SIZE: u32 = 32;
 
 // Directory entry flags available in first byte of the short name
-pub(crate) const DIR_ENTRY_DELETED_FLAG: u8 = 0xE5;
-pub(crate) const DIR_ENTRY_REALLY_E5_FLAG: u8 = 0x05;
+pub(super) const DIR_ENTRY_DELETED_FLAG: u8 = 0xE5;
+pub(super) const DIR_ENTRY_REALLY_E5_FLAG: u8 = 0x05;
 
 // Short file name field size in bytes (besically 8 + 3)
-pub(crate) const SFN_SIZE: usize = 11;
+pub(super) const SFN_SIZE: usize = 11;
 
 // Byte used for short name padding
-pub(crate) const SFN_PADDING: u8 = b' ';
+pub(super) const SFN_PADDING: u8 = b' ';
 
 // Length in characters of a LFN fragment packed in one directory entry
-pub(crate) const LFN_PART_LEN: usize = 13;
+pub(super) const LFN_PART_LEN: usize = 13;
 
 // Bit used in order field to mark last LFN entry
 #[cfg(feature = "lfn")]
-pub(crate) const LFN_ENTRY_LAST_FLAG: u8 = 0x40;
+pub(super) const LFN_ENTRY_LAST_FLAG: u8 = 0x40;
 
 // Character to upper case conversion which supports Unicode only if `unicode` feature is enabled
 #[cfg(feature = "unicode")]
@@ -71,13 +71,13 @@ fn char_to_uppercase(c: char) -> iter::Once<char> {
 
 /// Decoded file short name
 #[derive(Clone, Debug, Default)]
-pub(crate) struct ShortName {
+pub(super) struct ShortName {
     name: [u8; 12],
     len: u8,
 }
 
 impl ShortName {
-    pub(crate) fn new(raw_name: &[u8; SFN_SIZE]) -> Self {
+    pub(super) fn new(raw_name: &[u8; SFN_SIZE]) -> Self {
         // get name components length by looking for space character
         let name_len = raw_name[0..8]
             .iter()
@@ -135,7 +135,7 @@ impl ShortName {
 
 #[allow(dead_code)]
 #[derive(Clone, Debug, Default, PartialEq)]
-pub(crate) struct DirFileEntryData {
+pub(super) struct DirFileEntryData {
     name: [u8; SFN_SIZE],
     attrs: FileAttributes,
     reserved_0: u8,
@@ -151,7 +151,7 @@ pub(crate) struct DirFileEntryData {
 }
 
 impl DirFileEntryData {
-    pub(crate) fn new(name: [u8; SFN_SIZE], attrs: FileAttributes) -> Self {
+    pub(super) fn new(name: [u8; SFN_SIZE], attrs: FileAttributes) -> Self {
         Self {
             name,
             attrs,
@@ -159,13 +159,13 @@ impl DirFileEntryData {
         }
     }
 
-    pub(crate) fn renamed(&self, new_name: [u8; SFN_SIZE]) -> Self {
+    pub(super) fn renamed(&self, new_name: [u8; SFN_SIZE]) -> Self {
         let mut sfn_entry = self.clone();
         sfn_entry.name = new_name;
         sfn_entry
     }
 
-    pub(crate) fn name(&self) -> &[u8; SFN_SIZE] {
+    pub(super) fn name(&self) -> &[u8; SFN_SIZE] {
         &self.name
     }
 
@@ -181,7 +181,7 @@ impl DirFileEntryData {
         ShortName::new(&name_copy)
     }
 
-    pub(crate) fn first_cluster(&self, fat_type: FatType) -> Option<u32> {
+    pub(super) fn first_cluster(&self, fat_type: FatType) -> Option<u32> {
         let first_cluster_hi = if fat_type == FatType::Fat32 {
             self.first_cluster_hi
         } else {
@@ -195,7 +195,7 @@ impl DirFileEntryData {
         }
     }
 
-    pub(crate) fn set_first_cluster(&mut self, cluster: Option<u32>, fat_type: FatType) {
+    pub(super) fn set_first_cluster(&mut self, cluster: Option<u32>, fat_type: FatType) {
         let n = cluster.unwrap_or(0);
         if fat_type == FatType::Fat32 {
             self.first_cluster_hi = (n >> 16) as u16;
@@ -203,7 +203,7 @@ impl DirFileEntryData {
         self.first_cluster_lo = (n & 0xFFFF) as u16;
     }
 
-    pub(crate) fn size(&self) -> Option<u32> {
+    pub(super) fn size(&self) -> Option<u32> {
         if self.is_file() {
             Some(self.size)
         } else {
@@ -215,7 +215,7 @@ impl DirFileEntryData {
         self.size = size;
     }
 
-    pub(crate) fn is_dir(&self) -> bool {
+    pub(super) fn is_dir(&self) -> bool {
         self.attrs.contains(FileAttributes::DIRECTORY)
     }
 
@@ -243,23 +243,23 @@ impl DirFileEntryData {
         DateTime::decode(self.modify_date, self.modify_time, 0)
     }
 
-    pub(crate) fn set_created(&mut self, date_time: DateTime) {
+    pub(super) fn set_created(&mut self, date_time: DateTime) {
         self.create_date = date_time.date.encode();
         let encoded_time = date_time.time.encode();
         self.create_time_1 = encoded_time.0;
         self.create_time_0 = encoded_time.1;
     }
 
-    pub(crate) fn set_accessed(&mut self, date: Date) {
+    pub(super) fn set_accessed(&mut self, date: Date) {
         self.access_date = date.encode();
     }
 
-    pub(crate) fn set_modified(&mut self, date_time: DateTime) {
+    pub(super) fn set_modified(&mut self, date_time: DateTime) {
         self.modify_date = date_time.date.encode();
         self.modify_time = date_time.time.encode().0;
     }
 
-    pub(crate) async fn serialize<W: Write>(&self, wrt: &mut W) -> Result<(), W::Error> {
+    pub(super) async fn serialize<W: Write>(&self, wrt: &mut W) -> Result<(), W::Error> {
         wrt.write_all(&self.name).await?;
         wrt.write_u8(self.attrs.bits()).await?;
         wrt.write_u8(self.reserved_0).await?;
@@ -276,26 +276,26 @@ impl DirFileEntryData {
         Ok(())
     }
 
-    pub(crate) fn is_deleted(&self) -> bool {
+    pub(super) fn is_deleted(&self) -> bool {
         self.name[0] == DIR_ENTRY_DELETED_FLAG
     }
 
-    pub(crate) fn set_deleted(&mut self) {
+    pub(super) fn set_deleted(&mut self) {
         self.name[0] = DIR_ENTRY_DELETED_FLAG;
     }
 
-    pub(crate) fn is_end(&self) -> bool {
+    pub(super) fn is_end(&self) -> bool {
         self.name[0] == 0
     }
 
-    pub(crate) fn is_volume(&self) -> bool {
+    pub(super) fn is_volume(&self) -> bool {
         self.attrs.contains(FileAttributes::VOLUME_ID)
     }
 }
 
 #[allow(dead_code)]
 #[derive(Clone, Debug, Default)]
-pub(crate) struct DirLfnEntryData {
+pub(super) struct DirLfnEntryData {
     order: u8,
     name_0: [u16; 5],
     attrs: FileAttributes,
@@ -307,7 +307,7 @@ pub(crate) struct DirLfnEntryData {
 }
 
 impl DirLfnEntryData {
-    pub(crate) fn new(order: u8, checksum: u8) -> Self {
+    pub(super) fn new(order: u8, checksum: u8) -> Self {
         Self {
             order,
             checksum,
@@ -316,20 +316,20 @@ impl DirLfnEntryData {
         }
     }
 
-    pub(crate) fn copy_name_from_slice(&mut self, lfn_part: &[u16; LFN_PART_LEN]) {
+    pub(super) fn copy_name_from_slice(&mut self, lfn_part: &[u16; LFN_PART_LEN]) {
         self.name_0.copy_from_slice(&lfn_part[0..5]);
         self.name_1.copy_from_slice(&lfn_part[5..5 + 6]);
         self.name_2.copy_from_slice(&lfn_part[11..11 + 2]);
     }
 
-    pub(crate) fn copy_name_to_slice(&self, lfn_part: &mut [u16]) {
+    pub(super) fn copy_name_to_slice(&self, lfn_part: &mut [u16]) {
         debug_assert!(lfn_part.len() == LFN_PART_LEN);
         lfn_part[0..5].copy_from_slice(&self.name_0);
         lfn_part[5..11].copy_from_slice(&self.name_1);
         lfn_part[11..13].copy_from_slice(&self.name_2);
     }
 
-    pub(crate) async fn serialize<W: Write>(&self, wrt: &mut W) -> Result<(), W::Error> {
+    pub(super) async fn serialize<W: Write>(&self, wrt: &mut W) -> Result<(), W::Error> {
         wrt.write_u8(self.order).await?;
         for ch in &self.name_0 {
             wrt.write_u16_le(*ch).await?;
@@ -348,35 +348,35 @@ impl DirLfnEntryData {
         Ok(())
     }
 
-    pub(crate) fn order(&self) -> u8 {
+    pub(super) fn order(&self) -> u8 {
         self.order
     }
 
-    pub(crate) fn checksum(&self) -> u8 {
+    pub(super) fn checksum(&self) -> u8 {
         self.checksum
     }
 
-    pub(crate) fn is_deleted(&self) -> bool {
+    pub(super) fn is_deleted(&self) -> bool {
         self.order == DIR_ENTRY_DELETED_FLAG
     }
 
-    pub(crate) fn set_deleted(&mut self) {
+    pub(super) fn set_deleted(&mut self) {
         self.order = DIR_ENTRY_DELETED_FLAG;
     }
 
-    pub(crate) fn is_end(&self) -> bool {
+    pub(super) fn is_end(&self) -> bool {
         self.order == 0
     }
 }
 
 #[derive(Clone, Debug)]
-pub(crate) enum DirEntryData {
+pub(super) enum DirEntryData {
     File(DirFileEntryData),
     Lfn(DirLfnEntryData),
 }
 
 impl DirEntryData {
-    pub(crate) async fn serialize<E: IoError, W: Write<Error = Error<E>>>(&self, wrt: &mut W) -> Result<(), Error<E>> {
+    pub(super) async fn serialize<E: IoError, W: Write<Error = Error<E>>>(&self, wrt: &mut W) -> Result<(), Error<E>> {
         debug!("DirEntryData::serialize");
         match self {
             DirEntryData::File(file) => file.serialize(wrt).await,
@@ -384,7 +384,7 @@ impl DirEntryData {
         }
     }
 
-    pub(crate) async fn deserialize<E: IoError, R: Read<Error = Error<E>>>(rdr: &mut R) -> Result<Self, Error<E>> {
+    pub(super) async fn deserialize<E: IoError, R: Read<Error = Error<E>>>(rdr: &mut R) -> Result<Self, Error<E>> {
         debug!("DirEntryData::deserialize");
         let mut name = [0; SFN_SIZE];
         match rdr.read_exact(&mut name).await {
@@ -442,21 +442,21 @@ impl DirEntryData {
         }
     }
 
-    pub(crate) fn is_deleted(&self) -> bool {
+    pub(super) fn is_deleted(&self) -> bool {
         match self {
             DirEntryData::File(file) => file.is_deleted(),
             DirEntryData::Lfn(lfn) => lfn.is_deleted(),
         }
     }
 
-    pub(crate) fn set_deleted(&mut self) {
+    pub(super) fn set_deleted(&mut self) {
         match self {
             DirEntryData::File(file) => file.set_deleted(),
             DirEntryData::Lfn(lfn) => lfn.set_deleted(),
         }
     }
 
-    pub(crate) fn is_end(&self) -> bool {
+    pub(super) fn is_end(&self) -> bool {
         match self {
             DirEntryData::File(file) => file.is_end(),
             DirEntryData::Lfn(lfn) => lfn.is_end(),
@@ -465,7 +465,7 @@ impl DirEntryData {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub(crate) struct DirEntryEditor {
+pub(super) struct DirEntryEditor {
     data: DirFileEntryData,
     pos: u64,
     dirty: bool,
@@ -480,22 +480,22 @@ impl DirEntryEditor {
         }
     }
 
-    pub(crate) fn inner(&self) -> &DirFileEntryData {
+    pub(super) fn inner(&self) -> &DirFileEntryData {
         &self.data
     }
 
-    pub(crate) fn dirty(&self) -> bool {
+    pub(super) fn dirty(&self) -> bool {
         self.dirty
     }
 
-    pub(crate) fn set_first_cluster(&mut self, first_cluster: Option<u32>, fat_type: FatType) {
+    pub(super) fn set_first_cluster(&mut self, first_cluster: Option<u32>, fat_type: FatType) {
         if first_cluster != self.data.first_cluster(fat_type) {
             self.data.set_first_cluster(first_cluster, fat_type);
             self.dirty = true;
         }
     }
 
-    pub(crate) fn set_size(&mut self, size: u32) {
+    pub(super) fn set_size(&mut self, size: u32) {
         match self.data.size() {
             Some(n) if size != n => {
                 self.data.set_size(size);
@@ -505,28 +505,28 @@ impl DirEntryEditor {
         }
     }
 
-    pub(crate) fn set_created(&mut self, date_time: DateTime) {
+    pub(super) fn set_created(&mut self, date_time: DateTime) {
         if date_time != self.data.created() {
             self.data.set_created(date_time);
             self.dirty = true;
         }
     }
 
-    pub(crate) fn set_accessed(&mut self, date: Date) {
+    pub(super) fn set_accessed(&mut self, date: Date) {
         if date != self.data.accessed() {
             self.data.set_accessed(date);
             self.dirty = true;
         }
     }
 
-    pub(crate) fn set_modified(&mut self, date_time: DateTime) {
+    pub(super) fn set_modified(&mut self, date_time: DateTime) {
         if date_time != self.data.modified() {
             self.data.set_modified(date_time);
             self.dirty = true;
         }
     }
 
-    pub(crate) async fn flush<IO: ReadWriteSeek, TP, OCC>(
+    pub(super) async fn flush<IO: ReadWriteSeek, TP, OCC>(
         &mut self,
         fs: &FileSystem<IO, TP, OCC>,
     ) -> Result<(), IO::Error> {
@@ -549,13 +549,13 @@ impl DirEntryEditor {
 /// `DirEntry` is returned by `DirIter` when reading a directory.
 #[derive(Clone)]
 pub(crate) struct DirEntry<'a, IO: ReadWriteSeek, TP, OCC> {
-    pub(crate) data: DirFileEntryData,
-    pub(crate) short_name: ShortName,
+    pub(super) data: DirFileEntryData,
+    pub(super) short_name: ShortName,
     #[cfg(feature = "lfn")]
-    pub(crate) lfn_utf16: LfnBuffer,
-    pub(crate) entry_pos: u64,
-    pub(crate) offset_range: (u64, u64),
-    pub(crate) fs: &'a FileSystem<IO, TP, OCC>,
+    pub(super) lfn_utf16: LfnBuffer,
+    pub(super) entry_pos: u64,
+    pub(super) offset_range: (u64, u64),
+    pub(super) fs: &'a FileSystem<IO, TP, OCC>,
 }
 
 #[allow(clippy::len_without_is_empty)]
@@ -623,7 +623,7 @@ impl<'a, IO: ReadWriteSeek, TP, OCC: OemCpConverter> DirEntry<'a, IO, TP, OCC> {
         self.data.is_file()
     }
 
-    pub(crate) fn first_cluster(&self) -> Option<u32> {
+    pub(super) fn first_cluster(&self) -> Option<u32> {
         self.data.first_cluster(self.fs.fat_type())
     }
 
@@ -631,7 +631,7 @@ impl<'a, IO: ReadWriteSeek, TP, OCC: OemCpConverter> DirEntry<'a, IO, TP, OCC> {
         DirEntryEditor::new(self.data.clone(), self.entry_pos)
     }
 
-    pub(crate) fn is_same_entry(&self, other: &DirEntry<IO, TP, OCC>) -> bool {
+    pub(super) fn is_same_entry(&self, other: &DirEntry<IO, TP, OCC>) -> bool {
         self.entry_pos == other.entry_pos
     }
 
@@ -721,7 +721,7 @@ impl<'a, IO: ReadWriteSeek, TP, OCC: OemCpConverter> DirEntry<'a, IO, TP, OCC> {
         self.data.modified()
     }
 
-    pub(crate) fn raw_short_name(&self) -> &[u8; SFN_SIZE] {
+    pub(super) fn raw_short_name(&self) -> &[u8; SFN_SIZE] {
         &self.data.name
     }
 
@@ -751,7 +751,7 @@ impl<'a, IO: ReadWriteSeek, TP, OCC: OemCpConverter> DirEntry<'a, IO, TP, OCC> {
         }
     }
 
-    pub(crate) fn eq_name(&self, name: &str) -> bool {
+    pub(super) fn eq_name(&self, name: &str) -> bool {
         #[cfg(feature = "lfn")]
         {
             if self.eq_name_lfn(name) {

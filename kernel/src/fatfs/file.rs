@@ -25,13 +25,13 @@ pub(crate) struct File<'a, IO: ReadWriteSeek, TP, OCC> {
 #[derive(Clone)]
 pub(crate) struct FileContext {
     // Note first_cluster is None if file is empty
-    pub(crate) first_cluster: Option<u32>,
+    pub(super) first_cluster: Option<u32>,
     // Note: if offset points between clusters current_cluster is the previous cluster
-    pub(crate) current_cluster: Option<u32>,
+    pub(super) current_cluster: Option<u32>,
     // current position in this file
-    pub(crate) offset: u32,
+    pub(super) offset: u32,
     // file dir entry editor - None for root dir
-    pub(crate) entry: Option<DirEntryEditor>,
+    pub(super) entry: Option<DirEntryEditor>,
 }
 
 /// An extent containing a file's data on disk.
@@ -42,7 +42,7 @@ pub(crate) struct Extent {
 }
 
 impl<'a, IO: ReadWriteSeek, TP, OCC> File<'a, IO, TP, OCC> {
-    pub(crate) fn new(
+    pub(super) fn new(
         first_cluster: Option<u32>,
         entry: Option<DirEntryEditor>,
         fs: &'a FileSystem<IO, TP, OCC>,
@@ -59,7 +59,7 @@ impl<'a, IO: ReadWriteSeek, TP, OCC> File<'a, IO, TP, OCC> {
     }
 
     /// Create a file from a prexisting [`FileContext`] & [`FileSystem`].
-    pub(crate) fn new_from_context(context: FileContext, fs: &'a FileSystem<IO, TP, OCC>) -> Self {
+    pub(super) fn new_from_context(context: FileContext, fs: &'a FileSystem<IO, TP, OCC>) -> Self {
         File { context, fs }
     }
 
@@ -125,7 +125,7 @@ impl<'a, IO: ReadWriteSeek, TP, OCC> File<'a, IO, TP, OCC> {
     // todo!("extents needs to be implemented using AsyncIterator");
     // }
 
-    pub(crate) fn abs_pos(&self) -> Option<u64> {
+    pub(super) fn abs_pos(&self) -> Option<u64> {
         // Returns current position relative to filesystem start
         // Note: when between clusters it returns position after previous cluster
         match self.context.current_cluster {
@@ -212,7 +212,7 @@ impl<'a, IO: ReadWriteSeek, TP, OCC> File<'a, IO, TP, OCC> {
         }
     }
 
-    pub(crate) fn first_cluster(&self) -> Option<u32> {
+    pub(super) fn first_cluster(&self) -> Option<u32> {
         self.context.first_cluster
     }
 

@@ -1,7 +1,7 @@
 use super::error::ReadExactError;
-pub(crate) use embedded_io_async::{ErrorType as IoBase, Read, Seek, SeekFrom, Write};
+pub(super) use embedded_io_async::{ErrorType as IoBase, Read, Seek, SeekFrom, Write};
 
-pub(crate) trait ReadLeExt {
+pub(super) trait ReadLeExt {
     type Error;
     async fn read_u8(&mut self) -> Result<u8, Self::Error>;
     async fn read_u16_le(&mut self) -> Result<u16, Self::Error>;
@@ -30,7 +30,7 @@ impl<T: Read> ReadLeExt for T {
     }
 }
 
-pub(crate) trait WriteLeExt {
+pub(super) trait WriteLeExt {
     type Error;
     async fn write_u8(&mut self, n: u8) -> Result<(), Self::Error>;
     async fn write_u16_le(&mut self, n: u16) -> Result<(), Self::Error>;

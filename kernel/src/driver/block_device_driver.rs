@@ -54,7 +54,7 @@ impl<T: BlockDevice<SIZE>, const SIZE: usize> BlockDevice<SIZE> for &mut T {
     }
 }
 
-pub(crate) fn slice_to_blocks<ALIGN, const SIZE: usize>(slice: &[u8]) -> &[Aligned<ALIGN, [u8; SIZE]>]
+fn slice_to_blocks<ALIGN, const SIZE: usize>(slice: &[u8]) -> &[Aligned<ALIGN, [u8; SIZE]>]
 where
     ALIGN: aligned::Alignment,
 {
@@ -70,9 +70,7 @@ where
     }
 }
 
-pub(crate) fn slice_to_blocks_mut<ALIGN, const SIZE: usize>(
-    slice: &mut [u8],
-) -> &mut [Aligned<ALIGN, [u8; SIZE]>]
+fn slice_to_blocks_mut<ALIGN, const SIZE: usize>(slice: &mut [u8]) -> &mut [Aligned<ALIGN, [u8; SIZE]>]
 where
     ALIGN: aligned::Alignment,
 {
@@ -88,7 +86,7 @@ where
     }
 }
 
-pub(crate) fn blocks_to_slice<ALIGN, const SIZE: usize>(buf: &[Aligned<ALIGN, [u8; SIZE]>]) -> &[u8]
+fn blocks_to_slice<ALIGN, const SIZE: usize>(buf: &[Aligned<ALIGN, [u8; SIZE]>]) -> &[u8]
 where
     ALIGN: aligned::Alignment,
 {
@@ -97,9 +95,7 @@ where
     unsafe { core::slice::from_raw_parts(buf.as_ptr() as *const u8, buf.len() * SIZE) }
 }
 
-pub(crate) fn blocks_to_slice_mut<ALIGN, const SIZE: usize>(
-    buf: &mut [Aligned<ALIGN, [u8; SIZE]>],
-) -> &mut [u8]
+fn blocks_to_slice_mut<ALIGN, const SIZE: usize>(buf: &mut [Aligned<ALIGN, [u8; SIZE]>]) -> &mut [u8]
 where
     ALIGN: aligned::Alignment,
 {

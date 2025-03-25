@@ -22,6 +22,7 @@ impl TaskWaker {
             task_queue,
         }))
     }
+    
     fn wake_task(&self) {
         self.task_queue.push(self.task_id).expect("task_queue full");
     }

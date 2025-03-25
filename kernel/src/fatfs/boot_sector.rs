@@ -23,34 +23,34 @@ const MB_64: u64 = KB_64 * 1024;
 const GB_64: u64 = MB_64 * 1024;
 
 #[derive(Debug, Clone)]
-pub(crate) struct BiosParameterBlock {
-    pub(crate) bytes_per_sector: u16,
-    pub(crate) sectors_per_cluster: u8,
-    pub(crate) reserved_sectors: u16,
-    pub(crate) fats: u8,
-    pub(crate) root_entries: u16,
-    pub(crate) total_sectors_16: u16,
-    pub(crate) media: u8,
-    pub(crate) sectors_per_fat_16: u16,
-    pub(crate) sectors_per_track: u16,
-    pub(crate) heads: u16,
-    pub(crate) hidden_sectors: u32,
-    pub(crate) total_sectors_32: u32,
+pub(super) struct BiosParameterBlock {
+    pub(super) bytes_per_sector: u16,
+    pub(super) sectors_per_cluster: u8,
+    pub(super) reserved_sectors: u16,
+    pub(super) fats: u8,
+    pub(super) root_entries: u16,
+    pub(super) total_sectors_16: u16,
+    pub(super) media: u8,
+    pub(super) sectors_per_fat_16: u16,
+    pub(super) sectors_per_track: u16,
+    pub(super) heads: u16,
+    pub(super) hidden_sectors: u32,
+    pub(super) total_sectors_32: u32,
 
     // Extended BIOS Parameter Block
-    pub(crate) sectors_per_fat_32: u32,
-    pub(crate) extended_flags: u16,
-    pub(crate) fs_version: u16,
-    pub(crate) root_dir_first_cluster: u32,
-    pub(crate) fs_info_sector: u16,
-    pub(crate) backup_boot_sector: u16,
-    pub(crate) reserved_0: [u8; 12],
-    pub(crate) drive_num: u8,
-    pub(crate) reserved_1: u8,
-    pub(crate) ext_sig: u8,
-    pub(crate) volume_id: u32,
-    pub(crate) volume_label: [u8; 11],
-    pub(crate) fs_type_label: [u8; 8],
+    pub(super) sectors_per_fat_32: u32,
+    pub(super) extended_flags: u16,
+    pub(super) fs_version: u16,
+    pub(super) root_dir_first_cluster: u32,
+    pub(super) fs_info_sector: u16,
+    pub(super) backup_boot_sector: u16,
+    pub(super) reserved_0: [u8; 12],
+    pub(super) drive_num: u8,
+    pub(super) reserved_1: u8,
+    pub(super) ext_sig: u8,
+    pub(super) volume_id: u32,
+    pub(super) volume_label: [u8; 11],
+    pub(super) fs_type_label: [u8; 8],
 }
 
 impl Default for BiosParameterBlock {
@@ -358,11 +358,11 @@ impl BiosParameterBlock {
         Ok(())
     }
 
-    pub(crate) fn mirroring_enabled(&self) -> bool {
+    pub(super) fn mirroring_enabled(&self) -> bool {
         self.extended_flags & 0x80 == 0
     }
 
-    pub(crate) fn active_fat(&self) -> u16 {
+    pub(super) fn active_fat(&self) -> u16 {
         // The zero-based number of the active FAT is only valid if mirroring is disabled.
         if self.mirroring_enabled() {
             0
@@ -371,18 +371,18 @@ impl BiosParameterBlock {
         }
     }
 
-    pub(crate) fn status_flags(&self) -> FsStatusFlags {
+    pub(super) fn status_flags(&self) -> FsStatusFlags {
         FsStatusFlags::decode(self.reserved_1)
     }
 
-    pub(crate) fn is_fat32(&self) -> bool {
+    pub(super) fn is_fat32(&self) -> bool {
         // because this field must be zero on FAT32, and
         // because it must be non-zero on FAT12/FAT16,
         // this provides a simple way to detect FAT32
         self.sectors_per_fat_16 == 0
     }
 
-    pub(crate) fn sectors_per_fat(&self) -> u32 {
+    pub(super) fn sectors_per_fat(&self) -> u32 {
         if self.is_fat32() {
             self.sectors_per_fat_32
         } else {
@@ -390,7 +390,7 @@ impl BiosParameterBlock {
         }
     }
 
-    pub(crate) fn total_sectors(&self) -> u32 {
+    pub(super) fn total_sectors(&self) -> u32 {
         if self.total_sectors_16 == 0 {
             self.total_sectors_32
         } else {
@@ -398,70 +398,70 @@ impl BiosParameterBlock {
         }
     }
 
-    pub(crate) fn reserved_sectors(&self) -> u32 {
+    pub(super) fn reserved_sectors(&self) -> u32 {
         u32::from(self.reserved_sectors)
     }
 
-    pub(crate) fn root_dir_sectors(&self) -> u32 {
+    pub(super) fn root_dir_sectors(&self) -> u32 {
         let root_dir_bytes = u32::from(self.root_entries) * DIR_ENTRY_SIZE;
         (root_dir_bytes + u32::from(self.bytes_per_sector) - 1) / u32::from(self.bytes_per_sector)
     }
 
-    pub(crate) fn sectors_per_all_fats(&self) -> u32 {
+    pub(super) fn sectors_per_all_fats(&self) -> u32 {
         u32::from(self.fats) * self.sectors_per_fat()
     }
 
-    pub(crate) fn first_data_sector(&self) -> u32 {
+    pub(super) fn first_data_sector(&self) -> u32 {
         let root_dir_sectors = self.root_dir_sectors();
         let fat_sectors = self.sectors_per_all_fats();
         self.reserved_sectors() + fat_sectors + root_dir_sectors
     }
 
-    pub(crate) fn total_clusters(&self) -> u32 {
+    pub(super) fn total_clusters(&self) -> u32 {
         let total_sectors = self.total_sectors();
         let first_data_sector = self.first_data_sector();
         let data_sectors = total_sectors - first_data_sector;
         data_sectors / u32::from(self.sectors_per_cluster)
     }
 
-    pub(crate) fn bytes_from_sectors(&self, sectors: u32) -> u64 {
+    pub(super) fn bytes_from_sectors(&self, sectors: u32) -> u64 {
         // Note: total number of sectors is a 32 bit number so offsets have to be 64 bit
         u64::from(sectors) * u64::from(self.bytes_per_sector)
     }
 
-    pub(crate) fn sectors_from_clusters(&self, clusters: u32) -> u32 {
+    pub(super) fn sectors_from_clusters(&self, clusters: u32) -> u32 {
         // Note: total number of sectors is a 32 bit number so it should not overflow
         clusters * u32::from(self.sectors_per_cluster)
     }
 
-    pub(crate) fn cluster_size(&self) -> u32 {
+    pub(super) fn cluster_size(&self) -> u32 {
         u32::from(self.sectors_per_cluster) * u32::from(self.bytes_per_sector)
     }
 
-    pub(crate) fn clusters_from_bytes(&self, bytes: u64) -> u32 {
+    pub(super) fn clusters_from_bytes(&self, bytes: u64) -> u32 {
         let cluster_size = u64::from(self.cluster_size());
         ((bytes + cluster_size - 1) / cluster_size) as u32
     }
 
-    pub(crate) fn fs_info_sector(&self) -> u32 {
+    pub(super) fn fs_info_sector(&self) -> u32 {
         u32::from(self.fs_info_sector)
     }
 
-    pub(crate) fn backup_boot_sector(&self) -> u32 {
+    pub(super) fn backup_boot_sector(&self) -> u32 {
         u32::from(self.backup_boot_sector)
     }
 }
 
-pub(crate) struct BootSector {
+pub(super) struct BootSector {
     bootjmp: [u8; 3],
     oem_name: [u8; 8],
-    pub(crate) bpb: BiosParameterBlock,
+    pub(super) bpb: BiosParameterBlock,
     boot_code: [u8; 448],
     boot_sig: [u8; 2],
 }
 
 impl BootSector {
-    pub(crate) async fn deserialize<R: Read>(rdr: &mut R) -> Result<Self, Error<R::Error>> {
+    pub(super) async fn deserialize<R: Read>(rdr: &mut R) -> Result<Self, Error<R::Error>> {
         let mut boot = Self::default();
         rdr.read_exact(&mut boot.bootjmp).await?;
         rdr.read_exact(&mut boot.oem_name).await?;
@@ -476,7 +476,7 @@ impl BootSector {
         Ok(boot)
     }
 
-    pub(crate) async fn serialize<W: Write>(&self, wrt: &mut W) -> Result<(), W::Error> {
+    pub(super) async fn serialize<W: Write>(&self, wrt: &mut W) -> Result<(), W::Error> {
         wrt.write_all(&self.bootjmp).await?;
         wrt.write_all(&self.oem_name).await?;
         self.bpb.serialize(&mut *wrt).await?;
@@ -491,7 +491,7 @@ impl BootSector {
         Ok(())
     }
 
-    pub(crate) fn validate<E: IoError>(&self) -> Result<(), Error<E>> {
+    pub(super) fn validate<E: IoError>(&self) -> Result<(), Error<E>> {
         if self.boot_sig != [0x55, 0xAA] {
             error!(
                 "Invalid boot sector signature: expected [0x55, 0xAA] but got {:?}",
@@ -802,7 +802,7 @@ fn format_bpb<E: IoError>(
     Ok((bpb, fat_type))
 }
 
-pub(crate) fn format_boot_sector<E: IoError>(
+pub(super) fn format_boot_sector<E: IoError>(
     options: &FormatVolumeOptions,
     total_sectors: u32,
     bytes_per_sector: u16,

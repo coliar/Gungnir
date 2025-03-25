@@ -122,7 +122,7 @@ where
     }
 }
 
-pub(crate) async fn alloc_cluster<S, E>(
+pub(super) async fn alloc_cluster<S, E>(
     fat: &mut S,
     fat_type: FatType,
     prev_cluster: Option<u32>,
@@ -154,7 +154,7 @@ where
     Ok(new_cluster)
 }
 
-pub(crate) async fn read_fat_flags<S, E>(fat: &mut S, fat_type: FatType) -> Result<FsStatusFlags, Error<E>>
+pub(super) async fn read_fat_flags<S, E>(fat: &mut S, fat_type: FatType) -> Result<FsStatusFlags, Error<E>>
 where
     S: Read + Seek,
     E: IoError,
@@ -179,7 +179,7 @@ where
     Ok(FsStatusFlags { dirty, io_error })
 }
 
-pub(crate) async fn count_free_clusters<S, E>(
+pub(super) async fn count_free_clusters<S, E>(
     fat: &mut S,
     fat_type: FatType,
     total_clusters: u32,
@@ -197,7 +197,7 @@ where
     }
 }
 
-pub(crate) async fn format_fat<S, E>(
+pub(super) async fn format_fat<S, E>(
     fat: &mut S,
     fat_type: FatType,
     media: u8,
@@ -587,7 +587,7 @@ impl FatTrait for Fat32 {
     }
 }
 
-pub(crate) struct ClusterIterator<B, E, S = B> {
+pub(super) struct ClusterIterator<B, E, S = B> {
     fat: B,
     fat_type: FatType,
     cluster: Option<u32>,
@@ -604,7 +604,7 @@ where
     S: Read + Write + Seek,
     Error<E>: From<S::Error> + From<ReadExactError<S::Error>>,
 {
-    pub(crate) fn new(fat: B, fat_type: FatType, cluster: u32) -> Self {
+    pub(super) fn new(fat: B, fat_type: FatType, cluster: u32) -> Self {
         Self {
             fat,
             fat_type,
@@ -615,7 +615,7 @@ where
         }
     }
 
-    pub(crate) async fn truncate(&mut self) -> Result<u32, Error<E>> {
+    pub(super) async fn truncate(&mut self) -> Result<u32, Error<E>> {
         if let Some(n) = self.cluster {
             // Move to the next cluster
             self.next().await;
@@ -628,7 +628,7 @@ where
         }
     }
 
-    pub(crate) async fn free(&mut self) -> Result<u32, Error<E>> {
+    pub(super) async fn free(&mut self) -> Result<u32, Error<E>> {
         let mut num_free = 0;
         while let Some(n) = self.cluster {
             self.next().await;
@@ -638,7 +638,7 @@ where
         Ok(num_free)
     }
 
-    pub async fn next(&mut self) -> Option<Result<u32, Error<E>>> {
+    pub(crate) async fn next(&mut self) -> Option<Result<u32, Error<E>>> {
         if self.err {
             return None;
         }

@@ -45,7 +45,7 @@ impl Date {
         Self { year, month, day }
     }
 
-    pub(crate) fn decode(dos_date: u16) -> Self {
+    pub(super) fn decode(dos_date: u16) -> Self {
         let (year, month, day) = ((dos_date >> 9) + MIN_YEAR, (dos_date >> 5) & 0xF, dos_date & 0x1F);
         Self { year, month, day }
     }
@@ -91,7 +91,7 @@ impl Time {
         Self { hour, min, sec, millis }
     }
 
-    pub(crate) fn decode(dos_time: u16, dos_time_hi_res: u8) -> Self {
+    pub(super) fn decode(dos_time: u16, dos_time_hi_res: u8) -> Self {
         let hour = dos_time >> 11;
         let min = (dos_time >> 5) & 0x3F;
         let sec = (dos_time & 0x1F) * 2 + u16::from(dos_time_hi_res / 100);
@@ -99,7 +99,7 @@ impl Time {
         Self { hour, min, sec, millis }
     }
 
-    pub(crate) fn encode(self) -> (u16, u8) {
+    pub(super) fn encode(self) -> (u16, u8) {
         let dos_time = (self.hour << 11) | (self.min << 5) | (self.sec / 2);
         let dos_time_hi_res = (self.millis / 10) + (self.sec % 2) * 100;
         // safe cast: value in range [0, 199]
@@ -126,7 +126,7 @@ impl DateTime {
         Self { date, time }
     }
 
-    pub(crate) fn decode(dos_date: u16, dos_time: u16, dos_time_hi_res: u8) -> Self {
+    pub(super) fn decode(dos_date: u16, dos_time: u16, dos_time_hi_res: u8) -> Self {
         Self::new(Date::decode(dos_date), Time::decode(dos_time, dos_time_hi_res))
     }
 }

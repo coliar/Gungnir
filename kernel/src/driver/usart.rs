@@ -41,7 +41,6 @@ impl Stream for UsartCodeStream {
             .try_get()
             .expect("inputcode queue not initialized");
 
-        // fast path
         if let Some(code) = queue.pop() {
             return Poll::Ready(Some(code));
         }

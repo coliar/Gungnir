@@ -45,7 +45,7 @@ impl FatType {
     const FAT32_MIN_CLUSTERS: u32 = 65525;
     const FAT32_MAX_CLUSTERS: u32 = 0x0FFF_FFF4;
 
-    pub(crate) fn from_clusters(total_clusters: u32) -> Self {
+    pub(super) fn from_clusters(total_clusters: u32) -> Self {
         if total_clusters < Self::FAT16_MIN_CLUSTERS {
             FatType::Fat12
         } else if total_clusters < Self::FAT32_MIN_CLUSTERS {
@@ -55,7 +55,7 @@ impl FatType {
         }
     }
 
-    pub(crate) fn bits_per_fat_entry(self) -> u32 {
+    pub(super) fn bits_per_fat_entry(self) -> u32 {
         match self {
             FatType::Fat12 => 12,
             FatType::Fat16 => 16,
@@ -63,7 +63,7 @@ impl FatType {
         }
     }
 
-    pub(crate) fn min_clusters(self) -> u32 {
+    pub(super) fn min_clusters(self) -> u32 {
         match self {
             FatType::Fat12 => 0,
             FatType::Fat16 => Self::FAT16_MIN_CLUSTERS,
@@ -71,7 +71,7 @@ impl FatType {
         }
     }
 
-    pub(crate) fn max_clusters(self) -> u32 {
+    pub(super) fn max_clusters(self) -> u32 {
         match self {
             FatType::Fat12 => Self::FAT16_MIN_CLUSTERS - 1,
             FatType::Fat16 => Self::FAT32_MIN_CLUSTERS - 1,
@@ -113,7 +113,7 @@ impl FsStatusFlags {
         res
     }
 
-    pub(crate) fn decode(flags: u8) -> Self {
+    pub(super) fn decode(flags: u8) -> Self {
         Self {
             dirty: flags & 1 != 0,
             io_error: flags & 2 != 0,
@@ -318,8 +318,8 @@ impl FileSystemStats {
 ///
 /// `FileSystem` struct is representing a state of a mounted FAT volume.
 pub(crate) struct FileSystem<IO: Read + Write + Seek, TP, OCC> {
-    pub(crate) disk: RefCell<IO>,
-    pub(crate) options: FsOptions<TP, OCC>,
+    pub(super) disk: RefCell<IO>,
+    pub(super) options: FsOptions<TP, OCC>,
     fat_type: FatType,
     bpb: BiosParameterBlock,
     first_data_sector: u32,
@@ -429,15 +429,15 @@ impl<IO: ReadWriteSeek, TP, OCC> FileSystem<IO, TP, OCC> {
         self.bpb.cluster_size()
     }
 
-    pub(crate) fn offset_from_cluster(&self, cluster: u32) -> u64 {
+    pub(super) fn offset_from_cluster(&self, cluster: u32) -> u64 {
         self.offset_from_sector(self.sector_from_cluster(cluster))
     }
 
-    pub(crate) fn bytes_from_clusters(&self, clusters: u32) -> u64 {
+    pub(super) fn bytes_from_clusters(&self, clusters: u32) -> u64 {
         self.bpb.bytes_from_sectors(self.bpb.sectors_from_clusters(clusters))
     }
 
-    pub(crate) fn clusters_from_bytes(&self, bytes: u64) -> u32 {
+    pub(super) fn clusters_from_bytes(&self, bytes: u64) -> u32 {
         self.bpb.clusters_from_bytes(bytes)
     }
 
@@ -446,7 +446,7 @@ impl<IO: ReadWriteSeek, TP, OCC> FileSystem<IO, TP, OCC> {
         fat_slice(io, &self.bpb)
     }
 
-    pub(crate) fn cluster_iter(
+    pub(super) fn cluster_iter(
         &self,
         cluster: u32,
     ) -> ClusterIterator<impl ReadWriteSeek<Error = Error<IO::Error>> + '_, IO::Error> {
@@ -454,7 +454,7 @@ impl<IO: ReadWriteSeek, TP, OCC> FileSystem<IO, TP, OCC> {
         ClusterIterator::new(disk_slice, self.fat_type, cluster)
     }
 
-    pub(crate) async fn truncate_cluster_chain(&self, cluster: u32) -> Result<(), Error<IO::Error>> {
+    pub(super) async fn truncate_cluster_chain(&self, cluster: u32) -> Result<(), Error<IO::Error>> {
         let mut iter = self.cluster_iter(cluster);
         let num_free = iter.truncate().await?;
         let mut fs_info = self.fs_info.borrow_mut();
@@ -462,7 +462,7 @@ impl<IO: ReadWriteSeek, TP, OCC> FileSystem<IO, TP, OCC> {
         Ok(())
     }
 
-    pub(crate) async fn free_cluster_chain(&self, cluster: u32) -> Result<(), Error<IO::Error>> {
+    pub(super) async fn free_cluster_chain(&self, cluster: u32) -> Result<(), Error<IO::Error>> {
         let mut iter = self.cluster_iter(cluster);
         let num_free = iter.free().await?;
         let mut fs_info = self.fs_info.borrow_mut();
@@ -470,7 +470,7 @@ impl<IO: ReadWriteSeek, TP, OCC> FileSystem<IO, TP, OCC> {
         Ok(())
     }
 
-    pub(crate) async fn alloc_cluster(&self, prev_cluster: Option<u32>, zero: bool) -> Result<u32, Error<IO::Error>> {
+    pub(super) async fn alloc_cluster(&self, prev_cluster: Option<u32>, zero: bool) -> Result<u32, Error<IO::Error>> {
         debug!("alloc_cluster");
         let hint = self.fs_info.borrow().next_free_cluster;
         let cluster = {
@@ -541,7 +541,7 @@ impl<IO: ReadWriteSeek, TP, OCC> FileSystem<IO, TP, OCC> {
         Ok(())
     }
 
-    pub(crate) async fn set_dirty_flag(&self, dirty: bool) -> Result<(), IO::Error> {
+    pub(super) async fn set_dirty_flag(&self, dirty: bool) -> Result<(), IO::Error> {
         // Do not overwrite flags read from BPB on mount
         let mut flags = self.bpb.status_flags();
         flags.dirty |= dirty;
@@ -633,7 +633,7 @@ impl<IO: Read + Write + Seek, TP, OCC> Drop for FileSystem<IO, TP, OCC> {
     }
 }
 
-pub(crate) struct FsIoAdapter<'a, IO: ReadWriteSeek, TP, OCC> {
+pub(super) struct FsIoAdapter<'a, IO: ReadWriteSeek, TP, OCC> {
     fs: &'a FileSystem<IO, TP, OCC>,
 }
 
@@ -690,7 +690,7 @@ fn fat_slice<S: ReadWriteSeek, B: BorrowMut<S>>(
     DiskSlice::from_sectors(fat_first_sector, sectors_per_fat, mirrors, bpb, io)
 }
 
-pub(crate) struct DiskSlice<B, S = B> {
+pub(super) struct DiskSlice<B, S = B> {
     begin: u64,
     size: u64,
     offset: u64,
@@ -700,7 +700,7 @@ pub(crate) struct DiskSlice<B, S = B> {
 }
 
 impl<B: BorrowMut<S>, S: ReadWriteSeek> DiskSlice<B, S> {
-    pub(crate) fn new(begin: u64, size: u64, mirrors: u8, inner: B) -> Self {
+    pub(super) fn new(begin: u64, size: u64, mirrors: u8, inner: B) -> Self {
         Self {
             begin,
             size,
@@ -720,7 +720,7 @@ impl<B: BorrowMut<S>, S: ReadWriteSeek> DiskSlice<B, S> {
         )
     }
 
-    pub(crate) fn abs_pos(&self) -> u64 {
+    pub(super) fn abs_pos(&self) -> u64 {
         self.begin + self.offset
     }
 }
@@ -873,18 +873,18 @@ async fn write_zeros_until_end_of_sector<IO: ReadWriteSeek>(
 
 #[derive(Default, Debug, Clone)]
 pub(crate) struct FormatVolumeOptions {
-    pub(crate) bytes_per_sector: Option<u16>,
-    pub(crate) total_sectors: Option<u32>,
-    pub(crate) bytes_per_cluster: Option<u32>,
-    pub(crate) fat_type: Option<FatType>,
-    pub(crate) max_root_dir_entries: Option<u16>,
-    pub(crate) fats: Option<u8>,
-    pub(crate) media: Option<u8>,
-    pub(crate) sectors_per_track: Option<u16>,
-    pub(crate) heads: Option<u16>,
-    pub(crate) drive_num: Option<u8>,
-    pub(crate) volume_id: Option<u32>,
-    pub(crate) volume_label: Option<[u8; SFN_SIZE]>,
+    pub(super) bytes_per_sector: Option<u16>,
+    pub(super) total_sectors: Option<u32>,
+    pub(super) bytes_per_cluster: Option<u32>,
+    pub(super) fat_type: Option<FatType>,
+    pub(super) max_root_dir_entries: Option<u16>,
+    pub(super) fats: Option<u8>,
+    pub(super) media: Option<u8>,
+    pub(super) sectors_per_track: Option<u16>,
+    pub(super) heads: Option<u16>,
+    pub(super) drive_num: Option<u8>,
+    pub(super) volume_id: Option<u32>,
+    pub(super) volume_label: Option<[u8; SFN_SIZE]>,
 }
 
 impl FormatVolumeOptions {
