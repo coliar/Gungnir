@@ -2,13 +2,14 @@
 
 #![allow(unused_imports)]
 
-use embedded_io_async::{Read, Write};
+use alloc::format;
+use embedded_io_async::{Read, Seek, Write};
 use fs::{format_volume, FileSystem, FormatVolumeOptions, FsOptions, LossyOemCpConverter};
 use lazy_static::lazy_static;
 use spin::Mutex;
 use time::DefaultTimeProvider;
 
-use crate::{driver::{block_device_driver::BufStream, sdmmc::Sdmmc}, info, log, println};
+use crate::{driver::{block_device_driver::BufStream, sdmmc::SdmmcIo}, info, log, println};
 
 pub(crate) mod io;
 pub(crate) mod error;
@@ -20,48 +21,17 @@ pub(crate) mod fs;
 pub(crate) mod table;
 pub(crate) mod time;
 
-
-lazy_static! {
-    pub(crate) static ref 
-    FS: Mutex<Option<FileSystem<BufStream<Sdmmc, 512>, DefaultTimeProvider, LossyOemCpConverter>>> = Mutex::new(None);
-}
-
 pub(crate) async fn fs_init() {
-    let sdmmc = Sdmmc::new();
-    let buf_stream = BufStream::<_, 512>::new(sdmmc);
+    let sdmmc_io = SdmmcIo::new();
+    let buf_stream = BufStream::<_, 512>::new(sdmmc_io);
 
-    if let Ok(fs) = FileSystem::new(buf_stream, FsOptions::new()).await {
-        *FS.lock() = Some(fs);
-    } else {
+    if let Err(_err) = FileSystem::new(buf_stream, FsOptions::new()).await {
         info!("formatting fatfs");
-        let sdmmc = Sdmmc::new();
-        let mut buf_stream = BufStream::<_, 512>::new(sdmmc);
-
+        let sdmmc_io = SdmmcIo::new();
+        let mut buf_stream = BufStream::<_, 512>::new(sdmmc_io);
         format_volume(&mut buf_stream, FormatVolumeOptions::default()).await.expect("format fatfs failed");
-
-        let fs = FileSystem::new(buf_stream, FsOptions::new()).await.expect("create fatfs failed");
-        *FS.lock() = Some(fs);
+        let _fs = FileSystem::new(buf_stream, FsOptions::new()).await.expect("create fatfs failed");
+    } else {
+        info!("fatfs already existed");
     }
-
-    // let fs_guard = FS.lock();
-    // let root = fs_guard.as_ref().unwrap().root_dir();
-    // let mut iter = root.iter();
-    // loop {
-    //     if let Some(Ok(entry)) = iter.next().await {
-    //         if entry.is_dir() {
-    //             info!("Dir  name:{}", entry.file_name());
-    //         } else if entry.is_file() {
-    //             let mut rbuf = [0u8; 512];
-
-    //             let size = entry.to_file().read(&mut rbuf).await.expect("read file failed");
-    //             let content = core::str::from_utf8(&rbuf[..size]).expect("utf8 error");
-    //             info!("File  name:{}  content: {}", entry.file_name(), content);
-    //         } else {
-    //             info!("Unknown type");
-    //         }
-    //     } else {
-    //         info!("end");
-    //         break;
-    //     }
-    // }
 }

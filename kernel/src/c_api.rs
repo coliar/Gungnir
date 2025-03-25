@@ -17,12 +17,4 @@ extern "C" {
     pub fn sdmmc_write_blocks_it(data: *const u8, addr: u32, num: u32) -> i32;
 
     pub fn get_sdcard_capacity() -> u64;
-
-    pub fn get_RxCplt() -> u8;
-
-    pub fn set_RxCplt(val: u8);
-
-    pub fn get_TxCplt() -> u8;
-
-    pub fn set_TxCplt(val: u8);
 }

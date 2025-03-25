@@ -7,7 +7,7 @@ edition = "2021"
 
 
 [features]
-default = ["test_features", "alloc", "lfn", "unicode"]
+default = ["test_features", "alloc", "lfn", "unicode", "dirty-file-panic"]
 alloc = []
 lfn = []
 unicode = []
