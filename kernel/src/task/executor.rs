@@ -102,6 +102,18 @@ impl Executor {
     }
 
     fn do_idle(&self) {
+        use crate::time::{timer::WAITING_TIMERS, instant::Instant};
+
+        let now = Instant::now();
+        WAITING_TIMERS.lock().retain(|(expires_at, waker)| {
+            if *expires_at <= now {
+                waker.wake();
+                false
+            } else {
+                true
+            }
+        });
+
         unsafe {
             enable_irq();
         }

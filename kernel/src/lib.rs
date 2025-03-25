@@ -16,6 +16,7 @@ mod allocator;
 mod task;
 mod gsh;
 mod fatfs;
+mod time;
 
 #[macro_use]
 mod driver;
