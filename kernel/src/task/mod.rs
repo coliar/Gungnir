@@ -7,6 +7,7 @@ use core::{
 };
 
 pub(crate) mod executor;
+pub(crate) mod yield_now;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 struct TaskId(u32);

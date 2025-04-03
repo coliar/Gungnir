@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 #![allow(deprecated)]
 use core::fmt::Debug;
 

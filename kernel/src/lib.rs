@@ -17,6 +17,7 @@ mod task;
 mod gsh;
 mod fatfs;
 mod time;
+mod ipc;
 
 #[macro_use]
 mod driver;
@@ -68,7 +69,11 @@ pub extern "C" fn kernel_main(sdram_start: *mut u8, sdram_size: usize) -> ! {
     #[cfg(feature = "sdmmc_test")]
     executor.spawn(driver::sdmmc::test_sdmmc_io());
 
-    executor.spawn(fatfs::fs_init());
+    // executor.spawn(fatfs::fs_init());
+
+    for _ in 0..10 {
+        executor.spawn(ipc::async_mutex::test::add());
+    }
 
     executor.spawn(gsh::gshell(executor.clone()));
 

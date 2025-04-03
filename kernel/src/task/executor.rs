@@ -103,7 +103,13 @@ impl Executor {
     }
 
     fn do_idle(&self) {
+        use super::yield_now::YIELD_LIST;
         use crate::time::{timer::WAITING_TIMERS, instant::Instant};
+
+        while let Some((waker, waked)) = YIELD_LIST.lock().pop() {
+            waked.store(true, core::sync::atomic::Ordering::Release);
+            waker.wake();
+        }
 
         let now = Instant::now();
         WAITING_TIMERS.lock().retain(|(expires_at, waker)| {

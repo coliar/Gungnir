@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use core::cmp;
 
 use crate::{debug, error, println, log};

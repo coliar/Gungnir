@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 #[cfg(all(not(feature = "std"), feature = "alloc", feature = "lfn"))]
 use alloc::vec::Vec;
 

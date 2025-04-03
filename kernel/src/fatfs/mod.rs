@@ -1,6 +1,6 @@
 //copied from https://github.com/MabezDev/embedded-fatfs
 
-#![allow(unused_imports)]
+#![allow(unused_imports, dead_code)]
 
 use alloc::format;
 use embedded_io_async::{Read, Seek, Write};

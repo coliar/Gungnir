@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use bitflags::bitflags;
 use core::char;
 use core::fmt;

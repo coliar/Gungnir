@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use core::fmt::Debug;
 pub(super) use embedded_io_async::{Error as IoError, ErrorKind, ReadExactError};
 

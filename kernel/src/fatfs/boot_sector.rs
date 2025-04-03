@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use core::cmp;
 use core::u16;
 use core::u8;

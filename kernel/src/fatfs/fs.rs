@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use core::borrow::BorrowMut;
 use core::cell::{Cell, RefCell};
 use core::char;
