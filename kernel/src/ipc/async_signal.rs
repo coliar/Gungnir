@@ -1,5 +1,3 @@
-//use core::task::Waker;
-
 use core::{cell::Cell, future::{poll_fn, Future}, task::Poll};
 
 use alloc::vec::Vec;
@@ -45,7 +43,7 @@ impl<T> Default for AsyncSignal<T> {
 }
 
 
-impl<T: Copy + Clone> AsyncSignal<T> {
+impl<T: Clone> AsyncSignal<T> {
     pub(crate) fn signal(&self, val: T) {
         let old_state = self.state.cell.replace(State::Signaled(val));
         if let State::Waiting(waiters) = old_state {
@@ -98,3 +96,35 @@ impl<T: Copy + Clone> AsyncSignal<T> {
     }
 }
 
+
+pub(crate) mod test {
+    use crate::println;
+
+    use super::*;
+
+    static SIG: AsyncSignal<u8> = AsyncSignal::new();
+
+    pub(crate) async fn wait1() {
+        println!("in wait1");
+        let sig = SIG.wait().await;
+        println!("wait1 --- sig: {}", sig);
+    }
+
+    pub(crate) async fn wait2() {
+        println!("in wait2");
+        let sig = SIG.wait().await;
+        println!("wait2 --- sig: {}", sig);
+    }
+
+    pub(crate) async fn wait3() {
+        println!("in wait3");
+        let sig = SIG.wait().await;
+        println!("wait3 --- sig: {}", sig);
+    }
+
+    pub(crate) async fn signal() {
+        println!("in signal");
+        SIG.signal(9);
+        println!("signal done");
+    }
+}

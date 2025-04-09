@@ -1,6 +1,6 @@
 use core::{future::poll_fn, task::{Context, Poll}};
 
-use alloc::collections::vec_deque::VecDeque;
+use alloc::{collections::vec_deque::VecDeque, sync::Arc};
 use futures_util::task::AtomicWaker;
 
 use super::async_mutex::AsyncMutex;
@@ -69,23 +69,15 @@ impl<T, const N: usize> ChannelState<T, N> {
     }
 }
 
-pub(crate) struct Channel<T, const N: usize> {
+struct Channel<T, const N: usize> {
     inner: AsyncMutex<ChannelState<T, N>>,
 }
 
 impl<T, const N: usize> Channel<T, N> {
-    pub(crate) fn new() -> Self {
+    fn new() -> Self {
         Self {
             inner: AsyncMutex::new(ChannelState::new()),
         }
-    }
-
-    pub(crate) fn sender(&self) -> Sender<'_, T, N> {
-        Sender { channel: self }
-    }
-
-    pub(crate) fn receiver(&self) -> Receiver<'_, T, N> {
-        Receiver { channel: self }
     }
 
     fn cap(&self) -> usize {
@@ -113,16 +105,21 @@ impl<T, const N: usize> Channel<T, N> {
     }
 
     async fn send(&self, msg: T) {
-        let mut guard = self.inner.lock().await;
         let mut msg = Some(msg);
 
         poll_fn(|cx| {
             match msg.take() {
                 Some(m1) => {
+                    let mut guard = loop {
+                        if let Ok(guard) = self.inner.try_lock() {
+                            break guard;
+                        }
+                    };
                     match guard.send_with_context(m1, cx) {
                         Ok(..) => Poll::Ready(()),
                         Err(TrySendErr::Full(m2)) => {
                             msg = Some(m2);
+                            drop(guard);
                             Poll::Pending
                         }
                     }
@@ -133,22 +130,29 @@ impl<T, const N: usize> Channel<T, N> {
     }
 
     async fn recv(&self) -> T {
-        let mut guard = self.inner.lock().await;
         poll_fn(|cx| {
+            let mut guard = loop {
+                if let Ok(guard) = self.inner.try_lock() {
+                    break guard;
+                }
+            };
             match guard.rcve_with_context(cx) {
                 Ok(msg) => Poll::Ready(msg),
-                Err(TryRecvErr::Empty) => Poll::Pending
+                Err(TryRecvErr::Empty) => {
+                    drop(guard);
+                    Poll::Pending
+                },
             }
         }).await
     }
 }
 
 
-pub(crate) struct Sender<'a, T, const N: usize> {
-    channel: &'a Channel<T, N>,
+pub(crate) struct Sender<T, const N: usize> {
+    channel: Arc<Channel<T, N>>,
 }
 
-impl<'a, T, const N: usize> Sender<'a, T, N> {
+impl<T, const N: usize> Sender<T, N> {
     pub(crate) fn cap(&self) -> usize {
         self.channel.cap()
     }
@@ -179,11 +183,11 @@ impl<'a, T, const N: usize> Sender<'a, T, N> {
 }
 
 
-pub(crate) struct Receiver<'a, T, const N: usize> {
-    channel: &'a Channel<T, N>,
+pub(crate) struct Receiver<T, const N: usize> {
+    channel: Arc<Channel<T, N>>,
 }
 
-impl<'a, T, const N: usize> Receiver<'a, T, N> {
+impl<T, const N: usize> Receiver<T, N> {
     pub(crate) fn cap(&self) -> usize {
         self.channel.cap()
     }
@@ -210,5 +214,36 @@ impl<'a, T, const N: usize> Receiver<'a, T, N> {
 
     pub(crate) async fn recv(&self) -> T {
         self.channel.recv().await
+    }
+}
+
+pub(crate) fn channel<T, const N: usize>() -> (Sender<T, N>, Receiver<T, N>) {
+    let channel = Arc::new(Channel::<T, N>::new());
+    let sender = Sender { channel: channel.clone() };
+    let receiver = Receiver { channel };
+    (sender, receiver)
+}
+
+
+pub(crate) mod test {
+    use alloc::{format, string::String};
+
+    use crate::println;
+
+    use super::*;
+
+    pub(crate) async fn rx_er(rx: Receiver<String, 4>) {
+        for _ in 0..20 {
+            let s = rx.recv().await;
+            println!("received: {}", s);
+        }
+    }
+
+    pub(crate) async fn tx_er(tx: Sender<String, 4>) {
+        for i in 0..20 {
+            let s = format!("Hello_{}", i);
+            println!("sent: {}", s);
+            tx.send(s).await;
+        }
     }
 }
