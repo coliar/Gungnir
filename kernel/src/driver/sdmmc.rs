@@ -5,8 +5,9 @@ use alloc::{collections::btree_map::BTreeMap, sync::Arc};
 use futures_util::task::AtomicWaker;
 use aligned::{Aligned, A4};
 use spin::Mutex;
-use crate::c_api::{get_sdcard_capacity, sdmmc_read_blocks_it, sdmmc_write_blocks_it};
+use crate::{c_api::{get_sdcard_capacity, sdmmc_read_blocks_it, sdmmc_write_blocks_it}, ipc::async_mutex::AsyncMutex};
 use super::block_device_driver::BlockDevice;
+use crate::{error, log};
 
 
 static IO_REQS: Mutex<BTreeMap<IoRequest, (Arc<AtomicWaker>, Arc<AtomicU32>)>> = Mutex::new(BTreeMap::new());
@@ -58,16 +59,14 @@ impl SdmmcIo {
     }
 
     fn read_blocks_it(&self, buf: *mut u8, addr: u32, num: u32) -> i32 {
-        self.set_io_status(Self::IO_START);
         unsafe { sdmmc_read_blocks_it(buf, addr, num) }
     }
 
     fn write_blocks_it(&self, data: *const u8, addr: u32, num: u32) -> i32 {
-        self.set_io_status(Self::IO_START);
         unsafe { sdmmc_write_blocks_it(data, addr, num) }
     }
 
-    fn poll(&self) -> impl Future<Output = ()> + Send + Sync + '_ {
+    fn wait(&self) -> impl Future<Output = ()> + Send + Sync + '_ {
         poll_fn(|cx| {
             if self.get_io_status() == Self::IO_START {
                 self.waker.register(&cx.waker());
@@ -79,6 +78,8 @@ impl SdmmcIo {
         })
     }
 }
+
+static SD_IO_LOCK: AsyncMutex<()> = AsyncMutex::new(());
 
 impl<const SIZE: usize> BlockDevice<SIZE> for SdmmcIo {
     type Align = A4;
@@ -94,20 +95,26 @@ impl<const SIZE: usize> BlockDevice<SIZE> for SdmmcIo {
         if data.len() == 0 {
             return Ok(());
         }
+
+        let guard = SD_IO_LOCK.lock().await;
         for (i, buf) in data.iter_mut().enumerate() {
             let buf_ptr = buf[..].as_mut_ptr();
 
             let res = self.read_blocks_it(buf_ptr, block_address + (i * num_block) as u32, num_block as u32);
             if res != 0 {
+                error!("read_blocks_it return [{}]", res);
                 return Err(());
             }
+            self.set_io_status(Self::IO_START);
+
             IO_REQS.lock().insert(
                 IoRequest::new(READ_REQUEST, buf_ptr as usize + SIZE),
                 (self.waker.clone(), self.io_status.clone())
             );
 
-            self.poll().await;
+            self.wait().await;
         }
+        drop(guard);
 
         Ok(())
     }
@@ -122,20 +129,26 @@ impl<const SIZE: usize> BlockDevice<SIZE> for SdmmcIo {
         if data.len() == 0 {
             return Ok(());
         }
+
+        let guard = SD_IO_LOCK.lock().await;
         for (i, buf) in data.iter().enumerate() {
             let buf_ptr = buf[..].as_ptr();
 
             let res = self.write_blocks_it(buf_ptr, block_address + (i * num_block) as u32, num_block as u32);
             if res != 0 {
+                error!("write_blocks_it return [{}]", res);
                 return Err(())
             }
+            self.set_io_status(Self::IO_START);
+
             IO_REQS.lock().insert(
                 IoRequest::new(WRITE_REQUEST, buf_ptr as usize + SIZE),
                 (self.waker.clone(), self.io_status.clone())
             );
 
-            self.poll().await;
+            self.wait().await;
         }
+        drop(guard);
 
         Ok(())
     }

@@ -156,11 +156,7 @@ int sdmmc_read_blocks_it(uint8_t *pData, uint32_t BlockAdd, uint32_t NumberOfBlo
     printf_("sdmmc_read_block_it: Wait_SDCARD_Ready failed\n");
     return -1;
   }
-  if (HAL_SD_ReadBlocks_IT(&SDHandle, pData, BlockAdd, NumberOfBlocks) != HAL_OK) {
-    printf_("sdmmc_read_block_it: HAL_SD_ReadBlocks_IT failed\n");
-    return -1;
-  }
-  return 0;
+  return HAL_SD_ReadBlocks_IT(&SDHandle, pData, BlockAdd, NumberOfBlocks);
 }
 
 int sdmmc_write_blocks_it(uint8_t *pData, uint32_t BlockAdd, uint32_t NumberOfBlocks) {
@@ -168,11 +164,7 @@ int sdmmc_write_blocks_it(uint8_t *pData, uint32_t BlockAdd, uint32_t NumberOfBl
     printf_("sdmmc_write_blocks_it: Wait_SDCARD_Ready failed\n");
     return -1;
   }
-  if (HAL_SD_WriteBlocks_IT(&SDHandle, pData, BlockAdd, NumberOfBlocks) != HAL_OK) {
-    printf_("sdmmc_write_blocks_it: HAL_SD_WriteBlocks_IT failed\n");
-    return -1;
-  }
-  return 0;
+  return HAL_SD_WriteBlocks_IT(&SDHandle, pData, BlockAdd, NumberOfBlocks);
 }
 
 uint64_t get_sdcard_capacity(void) {
