@@ -15,7 +15,6 @@ std = []
 dirty-file-panic = []
 chrono = []
 test_features = []
-sdmmc_test = []
 
 
 [dependencies]

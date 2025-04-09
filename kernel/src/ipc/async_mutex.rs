@@ -98,29 +98,3 @@ impl<'a, T: ?Sized> core::ops::DerefMut for AsyncMutexGuard<'a, T> {
         unsafe { &mut *self.mutex.inner.get() }
     }
 }
-
-pub(crate) mod test {
-    use crate::println;
-    use super::*;
-
-    static NUM: AsyncMutex<u32> = AsyncMutex::new(0);
-
-    async fn show() {
-        let guard = NUM.lock().await;
-        println!("NUM: {}", *guard);
-    }
-
-    async fn add_one() {
-        let mut guard = NUM.lock().await;
-        *guard += 1;
-    }
-
-    pub(crate) async fn add() {
-        add_one().await;
-        crate::task::yield_now::yield_now().await;
-        for _ in 1..100 {
-            add_one().await;
-        }
-        show().await;
-    }
-}

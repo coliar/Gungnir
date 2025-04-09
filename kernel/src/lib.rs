@@ -4,7 +4,6 @@
 extern crate alloc;
 
 use core::panic::PanicInfo;
-use alloc::string::String;
 use allocator::LockedHeap;
 use task::executor::Executor;
 
@@ -66,27 +65,8 @@ pub extern "C" fn kernel_main(sdram_start: *mut u8, sdram_size: usize) -> ! {
     info!("kernel heap was inited");
 
     let executor = Arc::new(Executor::new());
-    
-    #[cfg(feature = "sdmmc_test")]
-    executor.spawn(driver::sdmmc::test_sdmmc_io());
 
-    // executor.spawn(fatfs::fs_init());
-
-    // for _ in 0..10 {
-    //     executor.spawn(ipc::async_mutex::test::add());
-    // }
-
-    // executor.spawn(ipc::async_signal::test::wait1());
-    // executor.spawn(ipc::async_signal::test::wait2());
-    // executor.spawn(ipc::async_signal::test::wait3());
-    // executor.spawn(ipc::async_signal::test::signal());
-
-    use ipc::channel::*;
-    let (tx, rx) = channel::<String, 4>();
-
-    executor.spawn(ipc::channel::test::rx_er(rx));
-    executor.spawn(ipc::channel::test::tx_er(tx));
-
+    executor.spawn(fatfs::fs_init());
 
     executor.spawn(gsh::gshell(executor.clone()));
 

@@ -165,149 +165,148 @@ pub extern "C" fn io_req_cplt_callback(req: u32, addr: usize, size: u32) {
     }
 }
 
-#[cfg(feature = "sdmmc_test")]
-pub(crate) async fn test_sdmmc_io() {
-    use crate::{debug, info, log};
-    use crate::driver::block_device_driver::BufStream;
-    use embedded_io_async::{Read, Write, Seek};
+// pub(crate) async fn test_sdmmc_io() {
+//     use crate::{debug, info, log};
+//     use crate::driver::block_device_driver::BufStream;
+//     use embedded_io_async::{Read, Write, Seek};
 
-    let mut sdmmc_io = SdmmcIo::new();
+//     let mut sdmmc_io = SdmmcIo::new();
 
-    const TEST_ADDR: u32 = 0x00000000;
-    {
-        const LEN: usize = 512;
-        let mut read_data = [Aligned([0; LEN]), Aligned([0; LEN]), Aligned([0; LEN]), Aligned([0; LEN])];
-        let write_data = [Aligned([0x42; LEN]), Aligned([0x43; LEN]), Aligned([0x44; LEN]), Aligned([0x45; LEN])];
+//     const TEST_ADDR: u32 = 0x00000000;
+//     {
+//         const LEN: usize = 512;
+//         let mut read_data = [Aligned([0; LEN]), Aligned([0; LEN]), Aligned([0; LEN]), Aligned([0; LEN])];
+//         let write_data = [Aligned([0x42; LEN]), Aligned([0x43; LEN]), Aligned([0x44; LEN]), Aligned([0x45; LEN])];
 
-        let write_result = sdmmc_io.write(TEST_ADDR, &write_data).await;
-        assert!(write_result.is_ok(), "Failed to write to SD card");
+//         let write_result = sdmmc_io.write(TEST_ADDR, &write_data).await;
+//         assert!(write_result.is_ok(), "Failed to write to SD card");
 
-        let read_result = sdmmc_io.read(TEST_ADDR, &mut read_data).await;
-        assert!(read_result.is_ok(), "Failed to read from SD card");
+//         let read_result = sdmmc_io.read(TEST_ADDR, &mut read_data).await;
+//         assert!(read_result.is_ok(), "Failed to read from SD card");
 
-        assert_eq!(read_data, write_data, "Data read does not match data written");
-        debug!("SD card read/write {} bytes block ........ Ok", LEN);
-    }
+//         assert_eq!(read_data, write_data, "Data read does not match data written");
+//         debug!("SD card read/write {} bytes block ........ Ok", LEN);
+//     }
     
 
-    {
-        const LEN: usize = 1024;
-        let mut read_data = [Aligned([0; LEN]), Aligned([0; LEN]), Aligned([0; LEN]), Aligned([0; LEN])];
-        let write_data = [Aligned([0x42; LEN]), Aligned([0x43; LEN]), Aligned([0x44; LEN]), Aligned([0x45; LEN])];
+//     {
+//         const LEN: usize = 1024;
+//         let mut read_data = [Aligned([0; LEN]), Aligned([0; LEN]), Aligned([0; LEN]), Aligned([0; LEN])];
+//         let write_data = [Aligned([0x42; LEN]), Aligned([0x43; LEN]), Aligned([0x44; LEN]), Aligned([0x45; LEN])];
 
-        let write_result = sdmmc_io.write(TEST_ADDR, &write_data).await;
-        assert!(write_result.is_ok(), "Failed to write to SD card");
+//         let write_result = sdmmc_io.write(TEST_ADDR, &write_data).await;
+//         assert!(write_result.is_ok(), "Failed to write to SD card");
 
-        let read_result = sdmmc_io.read(TEST_ADDR, &mut read_data).await;
-        assert!(read_result.is_ok(), "Failed to read from SD card");
+//         let read_result = sdmmc_io.read(TEST_ADDR, &mut read_data).await;
+//         assert!(read_result.is_ok(), "Failed to read from SD card");
 
-        assert_eq!(read_data, write_data, "Data read does not match data written");
-        debug!("SD card read/write {} bytes block ........ Ok", LEN);
-    }
+//         assert_eq!(read_data, write_data, "Data read does not match data written");
+//         debug!("SD card read/write {} bytes block ........ Ok", LEN);
+//     }
 
-    {
-        const LEN: usize = 2048;
-        let mut read_data = [Aligned([0; LEN]), Aligned([0; LEN]), Aligned([0; LEN]), Aligned([0; LEN])];
-        let write_data = [Aligned([0x42; LEN]), Aligned([0x43; LEN]), Aligned([0x44; LEN]), Aligned([0x45; LEN])];
+//     {
+//         const LEN: usize = 2048;
+//         let mut read_data = [Aligned([0; LEN]), Aligned([0; LEN]), Aligned([0; LEN]), Aligned([0; LEN])];
+//         let write_data = [Aligned([0x42; LEN]), Aligned([0x43; LEN]), Aligned([0x44; LEN]), Aligned([0x45; LEN])];
 
-        let write_result = sdmmc_io.write(TEST_ADDR, &write_data).await;
-        assert!(write_result.is_ok(), "Failed to write to SD card");
+//         let write_result = sdmmc_io.write(TEST_ADDR, &write_data).await;
+//         assert!(write_result.is_ok(), "Failed to write to SD card");
 
-        let read_result = sdmmc_io.read(TEST_ADDR, &mut read_data).await;
-        assert!(read_result.is_ok(), "Failed to read from SD card");
+//         let read_result = sdmmc_io.read(TEST_ADDR, &mut read_data).await;
+//         assert!(read_result.is_ok(), "Failed to read from SD card");
 
-        assert_eq!(read_data, write_data, "Data read does not match data written");
-        debug!("SD card read/write {} bytes block ........ Ok", LEN);
-    }
+//         assert_eq!(read_data, write_data, "Data read does not match data written");
+//         debug!("SD card read/write {} bytes block ........ Ok", LEN);
+//     }
 
-    {
-        const LEN: usize = 4096;
-        let mut read_data = [Aligned([0; LEN]), Aligned([0; LEN]), Aligned([0; LEN]), Aligned([0; LEN])];
-        let write_data = [Aligned([0x42; LEN]), Aligned([0x43; LEN]), Aligned([0x44; LEN]), Aligned([0x45; LEN])];
+//     {
+//         const LEN: usize = 4096;
+//         let mut read_data = [Aligned([0; LEN]), Aligned([0; LEN]), Aligned([0; LEN]), Aligned([0; LEN])];
+//         let write_data = [Aligned([0x42; LEN]), Aligned([0x43; LEN]), Aligned([0x44; LEN]), Aligned([0x45; LEN])];
 
-        let write_result = sdmmc_io.write(TEST_ADDR, &write_data).await;
-        assert!(write_result.is_ok(), "Failed to write to SD card");
+//         let write_result = sdmmc_io.write(TEST_ADDR, &write_data).await;
+//         assert!(write_result.is_ok(), "Failed to write to SD card");
 
-        let read_result = sdmmc_io.read(TEST_ADDR, &mut read_data).await;
-        assert!(read_result.is_ok(), "Failed to read from SD card");
+//         let read_result = sdmmc_io.read(TEST_ADDR, &mut read_data).await;
+//         assert!(read_result.is_ok(), "Failed to read from SD card");
 
-        assert_eq!(read_data, write_data, "Data read does not match data written");
-        debug!("SD card read/write {} bytes block ........ Ok", LEN);
-    }
+//         assert_eq!(read_data, write_data, "Data read does not match data written");
+//         debug!("SD card read/write {} bytes block ........ Ok", LEN);
+//     }
 
-    info!("SD card read/write test passed");
+//     info!("SD card read/write test passed");
 
 
 
-    let mut buf_stream = BufStream::<_, 512>::new(sdmmc_io);
+//     let mut buf_stream = BufStream::<_, 512>::new(sdmmc_io);
 
-    {
-        const LEN: usize = 512;
-        let write_data = [0x51; LEN];
-        let mut read_data = [0u8; LEN];
+//     {
+//         const LEN: usize = 512;
+//         let write_data = [0x51; LEN];
+//         let mut read_data = [0u8; LEN];
 
-        let write_res = buf_stream.write(&write_data).await;
-        assert!(write_res.is_ok(), "Failed to write to BufStream");
+//         let write_res = buf_stream.write(&write_data).await;
+//         assert!(write_res.is_ok(), "Failed to write to BufStream");
 
-        assert!(buf_stream.seek(embedded_io_async::SeekFrom::Start(0)).await.is_ok(), "BufStream faile to seek");
+//         assert!(buf_stream.seek(embedded_io_async::SeekFrom::Start(0)).await.is_ok(), "BufStream faile to seek");
 
-        let read_res = buf_stream.read(&mut read_data).await;
-        assert!(read_res.is_ok(), "Failed to read from BufStream");
+//         let read_res = buf_stream.read(&mut read_data).await;
+//         assert!(read_res.is_ok(), "Failed to read from BufStream");
 
-        assert_eq!(write_data, read_data, "Data read does not match data written");
-        debug!("BufStream read/write {} bytes block ........ Ok", LEN);
-    }
+//         assert_eq!(write_data, read_data, "Data read does not match data written");
+//         debug!("BufStream read/write {} bytes block ........ Ok", LEN);
+//     }
 
-    {
-        const LEN: usize = 1024;
-        let write_data = [0x51; LEN];
-        let mut read_data = [0u8; LEN];
+//     {
+//         const LEN: usize = 1024;
+//         let write_data = [0x51; LEN];
+//         let mut read_data = [0u8; LEN];
 
-        let write_res = buf_stream.write(&write_data).await;
-        assert!(write_res.is_ok(), "Failed to write to BufStream");
+//         let write_res = buf_stream.write(&write_data).await;
+//         assert!(write_res.is_ok(), "Failed to write to BufStream");
 
-        assert!(buf_stream.seek(embedded_io_async::SeekFrom::Start(0)).await.is_ok(), "BufStream faile to seek");
+//         assert!(buf_stream.seek(embedded_io_async::SeekFrom::Start(0)).await.is_ok(), "BufStream faile to seek");
 
-        let read_res = buf_stream.read(&mut read_data).await;
-        assert!(read_res.is_ok(), "Failed to read from BufStream");
+//         let read_res = buf_stream.read(&mut read_data).await;
+//         assert!(read_res.is_ok(), "Failed to read from BufStream");
 
-        assert_eq!(write_data, read_data, "Data read does not match data written");
-        debug!("BufStream read/write {} bytes block ........ Ok", LEN);
-    }
+//         assert_eq!(write_data, read_data, "Data read does not match data written");
+//         debug!("BufStream read/write {} bytes block ........ Ok", LEN);
+//     }
 
-    {
-        const LEN: usize = 2048;
-        let write_data = [0x51; LEN];
-        let mut read_data = [0u8; LEN];
+//     {
+//         const LEN: usize = 2048;
+//         let write_data = [0x51; LEN];
+//         let mut read_data = [0u8; LEN];
 
-        let write_res = buf_stream.write(&write_data).await;
-        assert!(write_res.is_ok(), "Failed to write to BufStream");
+//         let write_res = buf_stream.write(&write_data).await;
+//         assert!(write_res.is_ok(), "Failed to write to BufStream");
 
-        assert!(buf_stream.seek(embedded_io_async::SeekFrom::Start(0)).await.is_ok(), "BufStream faile to seek");
+//         assert!(buf_stream.seek(embedded_io_async::SeekFrom::Start(0)).await.is_ok(), "BufStream faile to seek");
 
-        let read_res = buf_stream.read(&mut read_data).await;
-        assert!(read_res.is_ok(), "Failed to read from BufStream");
+//         let read_res = buf_stream.read(&mut read_data).await;
+//         assert!(read_res.is_ok(), "Failed to read from BufStream");
 
-        assert_eq!(write_data, read_data, "Data read does not match data written");
-        debug!("BufStream read/write {} bytes block ........ Ok", LEN);
-    }
+//         assert_eq!(write_data, read_data, "Data read does not match data written");
+//         debug!("BufStream read/write {} bytes block ........ Ok", LEN);
+//     }
 
-    {
-        const LEN: usize = 4096;
-        let write_data = [0x51; LEN];
-        let mut read_data = [0u8; LEN];
+//     {
+//         const LEN: usize = 4096;
+//         let write_data = [0x51; LEN];
+//         let mut read_data = [0u8; LEN];
 
-        let write_res = buf_stream.write(&write_data).await;
-        assert!(write_res.is_ok(), "Failed to write to BufStream");
+//         let write_res = buf_stream.write(&write_data).await;
+//         assert!(write_res.is_ok(), "Failed to write to BufStream");
 
-        assert!(buf_stream.seek(embedded_io_async::SeekFrom::Start(0)).await.is_ok(), "BufStream faile to seek");
+//         assert!(buf_stream.seek(embedded_io_async::SeekFrom::Start(0)).await.is_ok(), "BufStream faile to seek");
 
-        let read_res = buf_stream.read(&mut read_data).await;
-        assert!(read_res.is_ok(), "Failed to read from BufStream");
+//         let read_res = buf_stream.read(&mut read_data).await;
+//         assert!(read_res.is_ok(), "Failed to read from BufStream");
 
-        assert_eq!(write_data, read_data, "Data read does not match data written");
-        debug!("BufStream read/write {} bytes block ........ Ok", LEN);
-    }
+//         assert_eq!(write_data, read_data, "Data read does not match data written");
+//         debug!("BufStream read/write {} bytes block ........ Ok", LEN);
+//     }
 
-    info!("BufStream read/write test passed");
-}
+//     info!("BufStream read/write test passed");
+// }

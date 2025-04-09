@@ -223,27 +223,3 @@ pub(crate) fn channel<T, const N: usize>() -> (Sender<T, N>, Receiver<T, N>) {
     let receiver = Receiver { channel };
     (sender, receiver)
 }
-
-
-pub(crate) mod test {
-    use alloc::{format, string::String};
-
-    use crate::println;
-
-    use super::*;
-
-    pub(crate) async fn rx_er(rx: Receiver<String, 4>) {
-        for _ in 0..20 {
-            let s = rx.recv().await;
-            println!("received: {}", s);
-        }
-    }
-
-    pub(crate) async fn tx_er(tx: Sender<String, 4>) {
-        for i in 0..20 {
-            let s = format!("Hello_{}", i);
-            println!("sent: {}", s);
-            tx.send(s).await;
-        }
-    }
-}
