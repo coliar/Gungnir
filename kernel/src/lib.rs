@@ -28,7 +28,7 @@ mod log;
 
 
 #[global_allocator]
-static ALLOCATOR: LockedHeap = LockedHeap::empty();
+pub(crate) static ALLOCATOR: LockedHeap = LockedHeap::empty();
 
 #[no_mangle]
 pub extern "Rust" fn __rust_alloc_error_handler(_size: usize, _align: usize) -> ! {

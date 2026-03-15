@@ -1,6 +1,6 @@
 use core::future::Future;
 use core::pin::Pin;
-use alloc::{boxed::Box, collections::btree_map::BTreeMap, string::String, sync::Arc};
+use alloc::{boxed::Box, collections::{btree_map::BTreeMap, vec_deque::VecDeque}, string::{String, ToString}, sync::Arc};
 use crate::println;
 use super::Executor;
 use futures_channel::oneshot;
@@ -9,20 +9,20 @@ use futures_channel::oneshot;
 #[derive(Clone)]
 pub(in crate::gsh) struct CmdEntry {
     summary: &'static str,
-    future_fn: fn() -> Pin<Box<dyn Future<Output = ()>>>,
+    future_fn: fn(VecDeque<String>) -> Pin<Box<dyn Future<Output = ()>>>,
 }
 
 impl CmdEntry {
     pub(in crate::gsh) fn new(
         summary: &'static str, 
-        future_fn: fn() -> Pin<Box<dyn Future<Output = ()>>>
+        future_fn: fn(VecDeque<String>) -> Pin<Box<dyn Future<Output = ()>>>
     ) -> Self {
         CmdEntry { summary, future_fn }
     }
 }
 
 pub(super) struct GShell {
-    cmds: BTreeMap<&'static str, CmdEntry>,
+    cmds: BTreeMap<String, CmdEntry>,
     executor: Option<Arc<Executor>>,
 }
 
@@ -47,13 +47,16 @@ impl GShell {
                 println!("Command {} already exists", name);
             }
             None => {
-                self.cmds.insert(name, cmd);
+                self.cmds.insert(name.to_string(), cmd);
             }
         }
     }
 
-    pub(super) fn command(&self, cmd: &str, tx: oneshot::Sender<()>) {
+    pub(super) fn command(&self, line: &str, tx: oneshot::Sender<()>) {
         println!("\n");
+        let mut words = split_to_words(line);
+        let cmd = words.pop_front().expect("empty shell line");
+        let params = words;
         if cmd == "help" {
             for (name, entry) in self.cmds.iter() {
                 println!("{}: {}", name, entry.summary);
@@ -61,12 +64,12 @@ impl GShell {
             tx.send(()).unwrap();
             return;
         }
-        match self.cmds.get(cmd) {
+        match self.cmds.get(&cmd) {
             Some(entry) => {
                 let future_fn = entry.future_fn;
                 if let Some(executor) = &self.executor {
                     executor.spawn(async move {
-                        future_fn().await;
+                        future_fn(params).await;
                         tx.send(()).unwrap();
                     });
                 } else {
@@ -86,4 +89,10 @@ impl GShell {
     }
 
     pub(super) fn bell(&self) {}
+}
+
+fn split_to_words(line: &str) -> VecDeque<String> {
+    line.split_ascii_whitespace()
+        .map(|s| s.to_string())
+        .collect()
 }

@@ -4,3 +4,4 @@ compile_commands.json
 /.cache
 tmp.txt
 /kernel/target
+.vscode/
