@@ -1,5 +1,11 @@
+/**
+  ******************************************************************************
+  * @file     bsp_sdram.h
+  * @brief    SDRAM configuration and testing header.
+  ******************************************************************************
+  */
 #ifndef __SDRAM_H
-#define	__SDRAM_H
+#define __SDRAM_H
 
 #include "stm32h7xx.h"
 
@@ -33,7 +39,7 @@
 #define SDRAM_MODEREG_WRITEBURST_MODE_SINGLE     ((uint16_t)0x0200)      
 
 
-extern void 	SDRAM_InitSequence(void);
+extern void SDRAM_InitSequence(void);
 extern int sdram_test();
 
 

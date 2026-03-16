@@ -11,115 +11,113 @@ HAL_SD_CardInfoTypeDef SDCardInfo;
 
 
 static uint8_t Wait_SDCARD_Ready(void) {
-  uint32_t loop = SD_TIMEOUT;
-  
-  while(loop > 0) {
-    loop--;
-    if(HAL_SD_GetCardState(&SDHandle) == HAL_SD_CARD_TRANSFER) {
-      return HAL_OK;
+    uint32_t loop = SD_TIMEOUT;
+
+    while(loop > 0) {
+        loop--;
+        if(HAL_SD_GetCardState(&SDHandle) == HAL_SD_CARD_TRANSFER) {
+            return HAL_OK;
+        }
     }
-  }
-  return HAL_ERROR;
+    return HAL_ERROR;
 }
 
 void HAL_SD_MspInit(SD_HandleTypeDef* sdHandle) {
-  GPIO_InitTypeDef GPIO_InitStruct = {0};
-  RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = {0};
+    GPIO_InitTypeDef GPIO_InitStruct = {0};
+    RCC_PeriphCLKInitTypeDef PeriphClkInitStruct = {0};
 
-  if(sdHandle->Instance == SDMMC2) {
-    PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_SDMMC;
-    PeriphClkInitStruct.SdmmcClockSelection = RCC_SDMMCCLKSOURCE_PLL;
-    if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK) {
-      Error_Handler();
+    if(sdHandle->Instance == SDMMC2) {
+        PeriphClkInitStruct.PeriphClockSelection = RCC_PERIPHCLK_SDMMC;
+        PeriphClkInitStruct.SdmmcClockSelection = RCC_SDMMCCLKSOURCE_PLL;
+        if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInitStruct) != HAL_OK) {
+            Error_Handler();
+        }
+
+        __HAL_RCC_SDMMC2_CLK_ENABLE();
+
+        __HAL_RCC_GPIOB_CLK_ENABLE();
+        __HAL_RCC_GPIOD_CLK_ENABLE();
+        /**SDMMC2 GPIO Configuration
+        PB14     ------> SDMMC2_D0
+        PB15     ------> SDMMC2_D1
+        PD6     ------> SDMMC2_CK
+        PD7     ------> SDMMC2_CMD
+        PB3 (JTDO/TRACESWO)     ------> SDMMC2_D2
+        PB4 (NJTRST)     ------> SDMMC2_D3
+        */
+        GPIO_InitStruct.Pin = GPIO_PIN_14 | GPIO_PIN_15 | GPIO_PIN_3 | GPIO_PIN_4;
+        GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+        GPIO_InitStruct.Pull = GPIO_NOPULL;
+        GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+        GPIO_InitStruct.Alternate = GPIO_AF9_SDIO2;
+        HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+        GPIO_InitStruct.Pin = GPIO_PIN_6 | GPIO_PIN_7;
+        GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+        GPIO_InitStruct.Pull = GPIO_NOPULL;
+        GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+        GPIO_InitStruct.Alternate = GPIO_AF11_SDIO2;
+        HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
+
+        HAL_NVIC_SetPriority(SDMMC2_IRQn, 0, 0);
+        HAL_NVIC_EnableIRQ(SDMMC2_IRQn);
     }
-
-    /* SDMMC2 clock enable */
-    __HAL_RCC_SDMMC2_CLK_ENABLE();
-
-    __HAL_RCC_GPIOB_CLK_ENABLE();
-    __HAL_RCC_GPIOD_CLK_ENABLE();
-    /**SDMMC2 GPIO Configuration
-    PB14     ------> SDMMC2_D0
-    PB15     ------> SDMMC2_D1
-    PD6     ------> SDMMC2_CK
-    PD7     ------> SDMMC2_CMD
-    PB3 (JTDO/TRACESWO)     ------> SDMMC2_D2
-    PB4 (NJTRST)     ------> SDMMC2_D3
-    */
-    GPIO_InitStruct.Pin = GPIO_PIN_14|GPIO_PIN_15|GPIO_PIN_3|GPIO_PIN_4;
-    GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-    GPIO_InitStruct.Pull = GPIO_NOPULL;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
-    GPIO_InitStruct.Alternate = GPIO_AF9_SDIO2;
-    HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-
-    GPIO_InitStruct.Pin = GPIO_PIN_6|GPIO_PIN_7;
-    GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-    GPIO_InitStruct.Pull = GPIO_NOPULL;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
-    GPIO_InitStruct.Alternate = GPIO_AF11_SDIO2;
-    HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
-
-    /* SDMMC2 interrupt Init */
-    HAL_NVIC_SetPriority(SDMMC2_IRQn, 0, 0);
-    HAL_NVIC_EnableIRQ(SDMMC2_IRQn);
-  }
 }
 
 void HAL_SD_MspDeInit(SD_HandleTypeDef* sdHandle) {
-  if(sdHandle->Instance == SDMMC2) {
-    __HAL_RCC_SDMMC2_CLK_DISABLE();
+    if(sdHandle->Instance == SDMMC2) {
+        __HAL_RCC_SDMMC2_CLK_DISABLE();
 
-    /**SDMMC2 GPIO Configuration
-    PB14     ------> SDMMC2_D0
-    PB15     ------> SDMMC2_D1
-    PD6     ------> SDMMC2_CK
-    PD7     ------> SDMMC2_CMD
-    PB3 (JTDO/TRACESWO)     ------> SDMMC2_D2
-    PB4 (NJTRST)     ------> SDMMC2_D3
-    */
-    HAL_GPIO_DeInit(GPIOB, GPIO_PIN_14|GPIO_PIN_15|GPIO_PIN_3|GPIO_PIN_4);
+        /**SDMMC2 GPIO Configuration
+        PB14     ------> SDMMC2_D0
+        PB15     ------> SDMMC2_D1
+        PD6     ------> SDMMC2_CK
+        PD7     ------> SDMMC2_CMD
+        PB3 (JTDO/TRACESWO)     ------> SDMMC2_D2
+        PB4 (NJTRST)     ------> SDMMC2_D3
+        */
+        HAL_GPIO_DeInit(GPIOB, GPIO_PIN_14|GPIO_PIN_15|GPIO_PIN_3|GPIO_PIN_4);
 
-    HAL_GPIO_DeInit(GPIOD, GPIO_PIN_6|GPIO_PIN_7);
+        HAL_GPIO_DeInit(GPIOD, GPIO_PIN_6|GPIO_PIN_7);
 
-    /* SDMMC2 interrupt Deinit */
-    HAL_NVIC_DisableIRQ(SDMMC2_IRQn);
-  }
+        /* SDMMC2 interrupt Deinit */
+        HAL_NVIC_DisableIRQ(SDMMC2_IRQn);
+    }
 }
 
 int sdmmc_init() {
-  HAL_SD_CardCIDTypedef pCID;
-  HAL_SD_CardCSDTypedef pCSD;
+    HAL_SD_CardCIDTypedef pCID;
+    HAL_SD_CardCSDTypedef pCSD;
 
-  SDHandle.Instance = SDMMC2;
-  HAL_SD_DeInit(&SDHandle);
-  SDHandle.Init.ClockEdge = SDMMC_CLOCK_EDGE_RISING;
-  SDHandle.Init.ClockPowerSave = SDMMC_CLOCK_POWER_SAVE_DISABLE;
-  SDHandle.Init.BusWide = SDMMC_BUS_WIDE_4B;
-  SDHandle.Init.HardwareFlowControl = SDMMC_HARDWARE_FLOW_CONTROL_ENABLE;
-  SDHandle.Init.ClockDiv = 23;
+    SDHandle.Instance = SDMMC2;
+    HAL_SD_DeInit(&SDHandle);
+    SDHandle.Init.ClockEdge = SDMMC_CLOCK_EDGE_RISING;
+    SDHandle.Init.ClockPowerSave = SDMMC_CLOCK_POWER_SAVE_DISABLE;
+    SDHandle.Init.BusWide = SDMMC_BUS_WIDE_4B;
+    SDHandle.Init.HardwareFlowControl = SDMMC_HARDWARE_FLOW_CONTROL_ENABLE;
+    SDHandle.Init.ClockDiv = 23;
 
-  if (HAL_SD_Init(&SDHandle) != HAL_OK) {
-    printf_("HAL_SD_Init failed\n");
-    return -1;
-  }
-  // if (HAL_SD_Erase(&SDHandle, ADDRESS, ADDRESS + BUFFER_SIZE) != HAL_OK) {
-  //   printf_("HAL_SD_Erase failed\n");
-  //   return -1;
-  // }
-  if (Wait_SDCARD_Ready() != HAL_OK) {
-    printf_("Wait_SDCARD_Ready failed\n");
-    return -1;
-  }
+    if (HAL_SD_Init(&SDHandle) != HAL_OK) {
+        printf_("HAL_SD_Init failed\n");
+        return -1;
+    }
+    // if (HAL_SD_Erase(&SDHandle, ADDRESS, ADDRESS + BUFFER_SIZE) != HAL_OK) {
+    //   printf_("HAL_SD_Erase failed\n");
+    //   return -1;
+    // }
+    if (Wait_SDCARD_Ready() != HAL_OK) {
+        printf_("Wait_SDCARD_Ready failed\n");
+        return -1;
+    }
 
-  HAL_SD_GetCardCID(&SDHandle, &pCID);
-  HAL_SD_GetCardCSD(&SDHandle, &pCSD);
+    HAL_SD_GetCardCID(&SDHandle, &pCID);
+    HAL_SD_GetCardCSD(&SDHandle, &pCSD);
 
-  return 0;
+    return 0;
 }
 
 void SDMMC2_IRQHandler(void) {
-  HAL_SD_IRQHandler(&SDHandle);
+    HAL_SD_IRQHandler(&SDHandle);
 }
 
 /**
@@ -128,48 +126,48 @@ void SDMMC2_IRQHandler(void) {
   * @retval None
   */
 void HAL_SD_ErrorCallback(SD_HandleTypeDef *hsd) {
-  while (1) {
-    HAL_GPIO_TogglePin(LED_GPIO_Port,LED_Pin);
-    HAL_Delay(1000);
-  }
+    while (1) {
+        HAL_GPIO_TogglePin(LED_GPIO_Port,LED_Pin);
+        HAL_Delay(1000);
+    }
 }
 
 
 #if !SDMMC_TEST
 
 void HAL_SD_RxCpltCallback(SD_HandleTypeDef *hsd) {
-  extern uint32_t READ_REQUEST;
-  extern void io_req_cplt_callback(uint32_t req, uint8_t *addr, uint32_t size);
+    extern uint32_t READ_REQUEST;
+    extern void io_req_cplt_callback(uint32_t req, uint8_t *addr, uint32_t size);
 
-  io_req_cplt_callback(READ_REQUEST, hsd->pRxBuffPtr, hsd->RxXferSize);
+    io_req_cplt_callback(READ_REQUEST, hsd->pRxBuffPtr, hsd->RxXferSize);
 }
 
 void HAL_SD_TxCpltCallback(SD_HandleTypeDef *hsd) {
-  extern uint32_t WRITE_REQUEST;
-  extern void io_req_cplt_callback(uint32_t req, uint8_t *addr, uint32_t size);
+    extern uint32_t WRITE_REQUEST;
+    extern void io_req_cplt_callback(uint32_t req, uint8_t *addr, uint32_t size);
 
-  io_req_cplt_callback(WRITE_REQUEST, hsd->pTxBuffPtr, hsd->TxXferSize);
+    io_req_cplt_callback(WRITE_REQUEST, hsd->pTxBuffPtr, hsd->TxXferSize);
 }
 
 int sdmmc_read_blocks_it(uint8_t *pData, uint32_t BlockAdd, uint32_t NumberOfBlocks) {
-  if (Wait_SDCARD_Ready() != HAL_OK) {
-    printf_("sdmmc_read_block_it: Wait_SDCARD_Ready failed\n");
-    return -1;
-  }
-  return HAL_SD_ReadBlocks_IT(&SDHandle, pData, BlockAdd, NumberOfBlocks);
+    if (Wait_SDCARD_Ready() != HAL_OK) {
+        printf_("sdmmc_read_block_it: Wait_SDCARD_Ready failed\n");
+        return -1;
+    }
+    return HAL_SD_ReadBlocks_IT(&SDHandle, pData, BlockAdd, NumberOfBlocks);
 }
 
 int sdmmc_write_blocks_it(uint8_t *pData, uint32_t BlockAdd, uint32_t NumberOfBlocks) {
-  if (Wait_SDCARD_Ready() != HAL_OK) {
-    printf_("sdmmc_write_blocks_it: Wait_SDCARD_Ready failed\n");
-    return -1;
-  }
-  return HAL_SD_WriteBlocks_IT(&SDHandle, pData, BlockAdd, NumberOfBlocks);
+    if (Wait_SDCARD_Ready() != HAL_OK) {
+        printf_("sdmmc_write_blocks_it: Wait_SDCARD_Ready failed\n");
+        return -1;
+    }
+    return HAL_SD_WriteBlocks_IT(&SDHandle, pData, BlockAdd, NumberOfBlocks);
 }
 
 uint64_t get_sdcard_capacity(void) {
-  HAL_SD_GetCardInfo(&SDHandle, &SDCardInfo);
-  return (uint64_t)SDCardInfo.LogBlockNbr * SDCardInfo.LogBlockSize;
+    HAL_SD_GetCardInfo(&SDHandle, &SDCardInfo);
+    return (uint64_t)SDCardInfo.LogBlockNbr * SDCardInfo.LogBlockSize;
 }
 
 #else
@@ -195,127 +193,127 @@ __IO uint8_t RxCplt, TxCplt;
 
 
 /**
-  * @brief Rx Transfer completed callbacks
-  * @param hsd: SD handle
-  * @retval None
-  */
+    * @brief Rx Transfer completed callbacks
+    * @param hsd: SD handle
+    * @retval None
+    */
 void HAL_SD_RxCpltCallback(SD_HandleTypeDef *hsd) {
-  RxCplt=1;
+    RxCplt=1;
 }
 
 
 /**
-  * @brief Tx Transfer completed callbacks
-  * @param hsd: SD handle
-  * @retval None
-  */
+    * @brief Tx Transfer completed callbacks
+    * @param hsd: SD handle
+    * @retval None
+    */
 void HAL_SD_TxCpltCallback(SD_HandleTypeDef *hsd) {
-  TxCplt=1;
+    TxCplt=1;
 }
 
 int sdmmc_test() {
-  __IO uint8_t step = 0;
-  uint32_t start_time = 0;
-  uint32_t stop_time = 0;
-  uint32_t loop_index = 0;
-  uint32_t index = 0;
+    __IO uint8_t step = 0;
+    uint32_t start_time = 0;
+    uint32_t stop_time = 0;
+    uint32_t loop_index = 0;
+    uint32_t index = 0;
 
-  while (1) {
-    switch (step) {
-      case 0: {
-        for (index = 0; index < BUFFERSIZE; index++) {
-          aTxBuffer[index] = DATA_PATTERN + index;
-        }
-        printf(" ****************** Start Write test ******************* \n");
-        printf(" - Buffer size to write: %lu MB   \n", (DATA_SIZE>>20));
-        index = 0;
-        start_time = HAL_GetTick();
-        step++;
-      } break;
-      case 1: {
-        TxCplt = 0;
-        if(Wait_SDCARD_Ready() != HAL_OK) {
-          printf_("Wait_SDCARD_Ready failed\n");
-          return -1;
-        }
-        if(HAL_SD_WriteBlocks_IT(&SDHandle, aTxBuffer, ADDRESS + (loop_index * NB_BLOCK_BUFFER), NB_BLOCK_BUFFER) != HAL_OK) {
-          printf_("HAL_SD_WriteBlocks_IT failed\n");
-          return -2;
-        }
-        step++;
-      } break;
-      case 2: {
-        if(TxCplt != 0) {
-          index++;
-          if(index < NB_BUFFER) {
-            step--;
-          } else {
-            stop_time = HAL_GetTick();
-            printf(" - Write Time(ms): %lu  -  Write Speed: %02.2f MB/s  \n", stop_time - start_time, (float)((float)(DATA_SIZE>>10)/(float)(stop_time - start_time)));
-            step++;
-          }
-        }
-      } break;
-      case 3: {
-        for (index = 0; index < BUFFERSIZE; index++) {
-          aRxBuffer[index] = 0;
-        }
-        printf(" ******************* Start Read test ******************* \n");
-        printf(" - Buffer size to read: %lu MB   \n", (DATA_SIZE>>20));
-        start_time = HAL_GetTick();
-        index = 0;
-        step++;
-      } break;
-      case 4: {
-        if(Wait_SDCARD_Ready() != HAL_OK) {
-          printf_("Wait_SDCARD_Ready failed\n");
-          return -3;
-        }
-        RxCplt = 0;
-        if(HAL_SD_ReadBlocks_IT(&SDHandle, aRxBuffer, ADDRESS + (loop_index * NB_BLOCK_BUFFER), NB_BLOCK_BUFFER) != HAL_OK) {
-          printf_("HAL_SD_ReadBlocks_IT failed\n");
-          return -4;
-        }
-        step++;
-      } break;
-      case 5: {
-        if(RxCplt != 0) {
-          index++;
-          if(index < NB_BUFFER) {
-            step--;
-          } else {
-            stop_time = HAL_GetTick();
-            printf(" - Read Time(ms): %lu  -  Read Speed: %02.2f MB/s  \n", stop_time - start_time, (float)((float)(DATA_SIZE>>10)/(float)(stop_time - start_time)));
-            step++;
-          }
-        }
-      } break;
-      case 6: {
-        index=0;
-        printf(" ********************* Check data ********************** \n");
-        while((index<BUFFERSIZE) && (aRxBuffer[index] == aTxBuffer[index])) {
-          index++;
-        }
-        
-        if(index != BUFFERSIZE) {
-          printf(" - Check data Error !!!!   \n");
-          return -5;
-        }
-        printf(" - Check data OK  \n");
-        step = 0;
-        loop_index ++;
-      } break;
-      default: {
-        printf_("unexpected step\n");
-        return -6;
-      }
-    }
-    if (loop_index > 20) {
-      break;
-    }
-  }
+    while (1) {
+        switch (step) {
+            case 0: {
+                for (index = 0; index < BUFFERSIZE; index++) {
+                    aTxBuffer[index] = DATA_PATTERN + index;
+                }
+                printf(" ****************** Start Write test ******************* \n");
+                printf(" - Buffer size to write: %lu MB   \n", (DATA_SIZE>>20));
+                index = 0;
+                start_time = HAL_GetTick();
+                step++;
+            } break;
+            case 1: {
+                TxCplt = 0;
+                if(Wait_SDCARD_Ready() != HAL_OK) {
+                    printf_("Wait_SDCARD_Ready failed\n");
+                    return -1;
+                }
+                if(HAL_SD_WriteBlocks_IT(&SDHandle, aTxBuffer, ADDRESS + (loop_index * NB_BLOCK_BUFFER), NB_BLOCK_BUFFER) != HAL_OK) {
+                    printf_("HAL_SD_WriteBlocks_IT failed\n");
+                    return -2;
+                }
+                step++;
+            } break;
+            case 2: {
+                if(TxCplt != 0) {
+                    index++;
+                    if(index < NB_BUFFER) {
+                        step--;
+                    } else {
+                        stop_time = HAL_GetTick();
+                        printf(" - Write Time(ms): %lu  -  Write Speed: %02.2f MB/s  \n", stop_time - start_time, (float)((float)(DATA_SIZE>>10)/(float)(stop_time - start_time)));
+                        step++;
+                    }
+                }
+            } break;
+            case 3: {
+                for (index = 0; index < BUFFERSIZE; index++) {
+                    aRxBuffer[index] = 0;
+                }
+                printf(" ******************* Start Read test ******************* \n");
+                printf(" - Buffer size to read: %lu MB   \n", (DATA_SIZE>>20));
+                start_time = HAL_GetTick();
+                index = 0;
+                step++;
+            } break;
+            case 4: {
+                if(Wait_SDCARD_Ready() != HAL_OK) {
+                    printf_("Wait_SDCARD_Ready failed\n");
+                    return -3;
+                }
+                RxCplt = 0;
+                if(HAL_SD_ReadBlocks_IT(&SDHandle, aRxBuffer, ADDRESS + (loop_index * NB_BLOCK_BUFFER), NB_BLOCK_BUFFER) != HAL_OK) {
+                    printf_("HAL_SD_ReadBlocks_IT failed\n");
+                    return -4;
+                }
+                step++;
+            } break;
+            case 5: {
+                if(RxCplt != 0) {
+                    index++;
+                    if(index < NB_BUFFER) {
+                        step--;
+                    } else {
+                        stop_time = HAL_GetTick();
+                        printf(" - Read Time(ms): %lu  -  Read Speed: %02.2f MB/s  \n", stop_time - start_time, (float)((float)(DATA_SIZE>>10)/(float)(stop_time - start_time)));
+                        step++;
+                    }
+                }
+            } break;
+            case 6: {
+                index=0;
+                printf(" ********************* Check data ********************** \n");
+                while((index<BUFFERSIZE) && (aRxBuffer[index] == aTxBuffer[index])) {
+                    index++;
+                }
 
-  return 0;
+                if(index != BUFFERSIZE) {
+                    printf(" - Check data Error !!!!   \n");
+                    return -5;
+                }
+                printf(" - Check data OK  \n");
+                step = 0;
+                loop_index ++;
+            } break;
+            default: {
+                printf_("unexpected step\n");
+                return -6;
+            }
+        }
+        if (loop_index > 20) {
+            break;
+        }
+    }
+
+    return 0;
 }
 
 #endif
